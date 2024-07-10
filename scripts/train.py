@@ -81,18 +81,18 @@ def main(cfg, auto_remove_exp_dir=False, debug=False):
     )
     datamodule.setup()
 
-    # Environment for close-loop evaluation
-    if cfg.train.rollout.enabled:
-        # Run rollout at regular intervals
-        rollout_callback = RolloutCallback(
-            exp_config=cfg,
-            every_n_steps=cfg.train.rollout.every_n_steps,
-            warm_start_n_steps=cfg.train.rollout.warm_start_n_steps,
-            verbose=True,
-            save_video=cfg.train.rollout.save_video,
-            video_dir=video_dir
-        )
-        train_callbacks.append(rollout_callback)
+    # Environment for close-loop evaluation # Commented out by Dimuthu.
+    # if cfg.train.rollout.enabled:
+    #     # Run rollout at regular intervals
+    #     rollout_callback = RolloutCallback(
+    #         exp_config=cfg,
+    #         every_n_steps=cfg.train.rollout.every_n_steps,
+    #         warm_start_n_steps=cfg.train.rollout.warm_start_n_steps,
+    #         verbose=True,
+    #         save_video=cfg.train.rollout.save_video,
+    #         video_dir=video_dir
+    #     )
+    #     train_callbacks.append(rollout_callback)
 
     # Model
     model = algo_factory(
@@ -184,6 +184,7 @@ def main(cfg, auto_remove_exp_dir=False, debug=False):
         print("WARNING: not logging training stats")
 
     # Train
+    cfg.train.validation.every_n_steps = 10000
     trainer = pl.Trainer(
         default_root_dir=root_dir,
         # checkpointing

@@ -1787,6 +1787,8 @@ class DiffuserTrafficModel(pl.LightningModule):
 
         self.cur_train_step = 0
 
+        self.losses = []
+
     @property
     def checkpoint_monitor_keys(self):
         if self.use_ema:
@@ -1927,6 +1929,7 @@ class DiffuserTrafficModel(pl.LightningModule):
 
         total_loss = 0.0
         for lk, l in losses.items():
+            self.losses.append(l)
             losses[lk] = l * self.algo_config.loss_weights[lk]
             total_loss += losses[lk]
 

@@ -95,6 +95,7 @@ def run_scene_editor(eval_cfg, save_cfg, data_to_disk, render_to_video, render_t
     else:
         raise NotImplementedError("{} is not a valid env".format(eval_cfg.env))
 
+    eval_cfg.n_step_action = 1
     # eval loop
     obs_to_torch = eval_cfg.eval_class not in ["GroundTruth", "ReplayAction"]
 
