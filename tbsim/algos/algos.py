@@ -1929,6 +1929,8 @@ class DiffuserTrafficModel(pl.LightningModule):
 
         total_loss = 0.0
         for lk, l in losses.items():
+            if len(self.losses) % 500 == 0 and len(self.losses) > 0:
+                print(torch.mean(torch.stack(self.losses)))
             self.losses.append(l)
             losses[lk] = l * self.algo_config.loss_weights[lk]
             total_loss += losses[lk]

@@ -336,7 +336,20 @@ class MapEncoder(nn.Module):
         dim_scale = self.encoder_feat_scales[-4] # decoder has 3 upsampling
         return (H * dim_scale, W * dim_scale )
 
-    def forward(self, map_inputs, encoder_feats=None):
+    def forward(self, map_inputs, encoder_feats=None, single_map=True):
+        b, ts, _, _ = map_inputs.shape
+        fc_outs = ()
+        if single_map:
+            fc_out, feat_map_out = self.process_single_map(map_inputs, encoder_feats)
+            return fc_out, feat_map_out
+        for t in range(ts):
+            fc_out, feat_map_out = self.process_single_map(map_inputs[:, t: t + 1], None)
+            fc_outs = (*fc_outs, fc_out)
+
+        fc_outs = torch.stack(fc_outs).permute(1, 0, 2)
+        return fc_outs, feat_map_out
+
+    def process_single_map(self, map_inputs, encoder_feats=None):
         if encoder_feats is None:
             encoder_feats = self.encoder_heads(map_inputs)
         fc_out = encoder_feats['fc'] if self.return_global_feat else None
@@ -345,7 +358,9 @@ class MapEncoder(nn.Module):
         if self.return_grid_feat:
             feat_map_out = self.decoder.forward(feat_to_decode=encoder_feats[-1],
                                                 encoder_feats=encoder_feats[:-1])
+
         return fc_out, feat_map_out
+
 
 from tbsim.models.base_models import Up, ConvBlock, IdentityBlock
 

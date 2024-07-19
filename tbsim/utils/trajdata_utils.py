@@ -153,7 +153,7 @@ def rasterize_agents(
     hist_image = hist_image.reshape(b, t, h, w)
 
     maps = torch.cat((hist_image, maps), dim=1)  # treat time as extra channels
-    return maps
+    return maps, hist_image
 
 
 def get_drivable_region_map(maps):
@@ -410,7 +410,7 @@ def parse_node_centric(batch: dict, overwrite_nan=True):
         # first T channels are rasterized history (single pixel where agent is)
         #       -1 for ego, 1 for others
         # last num_sem_layers are direclty the channels from data loader
-        maps = rasterize_agents(
+        maps, hist_maps = rasterize_agents(
             maps_rasterize_in,
             all_hist_pos,
             all_hist_yaw,
@@ -437,6 +437,7 @@ def parse_node_centric(batch: dict, overwrite_nan=True):
     extent_scale = 1.0
     d = dict(
         image=maps,
+        image_hist=hist_maps,
         map_names=batch["map_names"],
         drivable_map=drivable_map,
         target_positions=fut_pos,

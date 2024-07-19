@@ -29,6 +29,8 @@ from .diffuser_helpers import (
 from .temporal import TemporalMapUnet
 import tbsim.dynamics as dynamics
 from tbsim.utils.guidance_loss import verify_guidance_config_list, verify_constraint_config, apply_constraints, DiffuserGuidance, PerturbationGuidance
+from .transformer.temporal_transformer import TemporalTransformer
+
 
 def fprint(*args):
     for x in args:
@@ -170,6 +172,14 @@ class DiffuserModel(nn.Module):
                 grid_feature_dim=map_grid_feature_dim if self.use_map_feat_grid else None,
             )
 
+            # Changed By Dimuthu
+            self.map_encoder_hist = MapEncoder(
+                model_arch=map_encoder_model_arch,
+                input_image_shape=(1, 224, 224),  # Hardcoded by Dimuthu
+                global_feature_dim=map_feature_dim if self.use_map_feat_global else None,
+                grid_feature_dim=map_grid_feature_dim if self.use_map_feat_grid else None,
+            ).to('cuda')
+
             if self.use_map_feat_global:
                 cond_in_feat_size += map_feature_dim
 
@@ -235,6 +245,7 @@ class DiffuserModel(nn.Module):
         self.transition_dim = observation_dim + action_dim
         self.output_dim = output_dim
 
+        diffuser_model_arch = 'TemporalTransformer'
         if diffuser_model_arch == "TemporalMapUnet":
             transition_in_dim = self.transition_dim
             if self.use_map_feat_grid and self.map_encoder is not None:
@@ -247,6 +258,10 @@ class DiffuserModel(nn.Module):
                                       dim=base_dim,
                                       dim_mults=dim_mults,
                                       diffuser_building_block=diffuser_building_block)
+        elif diffuser_model_arch == "TemporalTransformer":
+            encoder_config = {'dim_model': 256, 'num_heads': 8, 'num_layers': 4, 'max_seq_len': 31}
+            decoder_config = {'dim_model': 256, 'num_heads': 8, 'num_layers': 4}
+            self.model = TemporalTransformer(encoder_config, decoder_config)
         else:
             print('unknown diffuser_model_arch:', diffuser_model_arch)
             raise
@@ -397,7 +412,9 @@ class DiffuserModel(nn.Module):
         map_grid_feat = map_grid_feat_non_cond = raster_from_agent = None
         if self.map_encoder is not None:
             image_batch = data_batch["image"]
-            map_global_feat, map_grid_feat = self.map_encoder(image_batch)
+            image_hist_batch = data_batch["image_hist"]
+            map_global_feat, map_grid_feat = self.map_encoder(image_batch, single_map=True)
+            map_global_feat_hist, map_grid_feat_hist = self.map_encoder_hist(image_hist_batch, single_map=False)
             if self.use_map_feat_global:
                 cond_feat_in = torch.cat([cond_feat_in, map_global_feat], dim=-1)
             if self.use_map_feat_grid and self.map_encoder is not None:
@@ -466,6 +483,7 @@ class DiffuserModel(nn.Module):
         aux_info = {
             'cond_feat': cond_feat, 
             'curr_states': curr_states,
+            'map_global_feat_hist': map_global_feat_hist
         }
         if include_class_free_cond:
             aux_info['non_cond_feat'] = non_cond_feat
