@@ -754,7 +754,7 @@ class STRIVE(PolicyComposer):
 
 class Diffuser(PolicyComposer):
     """Diffuser"""
-    def get_policy(self, policy=None):
+    def get_policy(self, policy=None, policy_wrapper=True):
         if policy is not None:
             assert isinstance(policy, DiffuserTrafficModel)
             policy_cfg = None
@@ -774,14 +774,16 @@ class Diffuser(PolicyComposer):
                 registered_name=policy_cfg["registered_name"],
             ).to(self.device).eval()
             policy_cfg = policy_cfg.clone()
-        policy = PolicyWrapper.wrap_controller(
-            policy,
-            num_action_samples=self.eval_config.policy.num_action_samples,
-            class_free_guide_w=self.eval_config.policy.class_free_guide_w,
-            guide_as_filter_only=self.eval_config.policy.guide_as_filter_only,
-            guide_with_gt=self.eval_config.policy.guide_with_gt,
-            guide_clean=self.eval_config.policy.guide_clean,
-        )
+
+        if policy_wrapper:
+            policy = PolicyWrapper.wrap_controller(
+                policy,
+                num_action_samples=self.eval_config.policy.num_action_samples,
+                class_free_guide_w=self.eval_config.policy.class_free_guide_w,
+                guide_as_filter_only=self.eval_config.policy.guide_as_filter_only,
+                guide_with_gt=self.eval_config.policy.guide_with_gt,
+                guide_clean=self.eval_config.policy.guide_clean,
+            )
         # TBD: for debugging purpose
         # policy = SceneCentricToAgentCentricWrapper(policy)
         # policy = AgentCentricToSceneCentricWrapper(policy)

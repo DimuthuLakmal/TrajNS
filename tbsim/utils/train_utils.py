@@ -52,18 +52,18 @@ def get_exp_dir(exp_name, output_dir, save_checkpoints=True, auto_remove_exp_dir
     if not os.path.isabs(base_output_dir):
         base_output_dir = os.path.abspath(base_output_dir)
     base_output_dir = os.path.join(base_output_dir, exp_name)
-    if os.path.exists(base_output_dir):
-        if not auto_remove_exp_dir:
-            ans = input(
-                "WARNING: model directory ({}) already exists! \noverwrite? (y/n)\n".format(
-                    base_output_dir
-                )
-            )
-        else:
-            ans = "y"
-        if ans == "y":
-            print("REMOVING")
-            shutil.rmtree(base_output_dir)
+    # if os.path.exists(base_output_dir):
+    #     if not auto_remove_exp_dir:
+    #         ans = input(
+    #             "WARNING: model directory ({}) already exists! \noverwrite? (y/n)\n".format(
+    #                 base_output_dir
+    #             )
+    #         )
+    #     else:
+    #         ans = "y"
+    #     if ans == "y":
+    #         print("REMOVING")
+    #         shutil.rmtree(base_output_dir)
     os.makedirs(base_output_dir, exist_ok=True)
 
     # version the run

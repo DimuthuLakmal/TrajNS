@@ -2,6 +2,7 @@ import argparse
 import sys
 import os
 import socket
+import importlib
 
 import wandb
 import pytorch_lightning as pl
@@ -18,7 +19,7 @@ from tbsim.utils.trajdata_utils import set_global_trajdata_batch_env, set_global
 from tbsim.algos.factory import algo_factory
 
 os.environ["WANDB_DISABLE_CODE"] = "True"
-def main(cfg, auto_remove_exp_dir=False, debug=False):
+def main(cfg, auto_remove_exp_dir=False, debug=False, load_checkpoint=False):
     pl.seed_everything(cfg.seed)
 
     if cfg.env.name == "l5kit":
@@ -82,23 +83,30 @@ def main(cfg, auto_remove_exp_dir=False, debug=False):
     datamodule.setup()
 
     # Environment for close-loop evaluation # Commented out by Dimuthu.
-    # if cfg.train.rollout.enabled:
-    #     # Run rollout at regular intervals
-    #     rollout_callback = RolloutCallback(
-    #         exp_config=cfg,
-    #         every_n_steps=cfg.train.rollout.every_n_steps,
-    #         warm_start_n_steps=cfg.train.rollout.warm_start_n_steps,
-    #         verbose=True,
-    #         save_video=cfg.train.rollout.save_video,
-    #         video_dir=video_dir
-    #     )
-    #     train_callbacks.append(rollout_callback)
+    if cfg.train.rollout.enabled:
+        # Run rollout at regular intervals
+        rollout_callback = RolloutCallback(
+            exp_config=cfg,
+            every_n_steps=cfg.train.rollout.every_n_steps,
+            warm_start_n_steps=cfg.train.rollout.warm_start_n_steps,
+            verbose=True,
+            save_video=cfg.train.rollout.save_video,
+            video_dir=video_dir
+        )
+        train_callbacks.append(rollout_callback)
 
-    # Model
-    model = algo_factory(
-        config=cfg,
-        modality_shapes=datamodule.modality_shapes
-    )
+    if load_checkpoint:
+        policy_composers = importlib.import_module("tbsim.evaluation.policy_composers")
+        composer_class = getattr(policy_composers, 'Diffuser')
+        composer = composer_class(cfg, 'cuda')
+        model, exp_config = composer.get_policy(policy_wrapper=False)
+        model.train()
+    else:
+        # Model
+        model = algo_factory(
+            config=cfg,
+            modality_shapes=datamodule.modality_shapes
+        )
 
     # Checkpointing
     if cfg.train.validation.enabled and cfg.train.save.save_best_validation:
@@ -146,7 +154,7 @@ def main(cfg, auto_remove_exp_dir=False, debug=False):
         auto_insert_metric_name=False,
         save_top_k=-1,
         monitor=None,
-        every_n_train_steps=10000,
+        every_n_train_steps=4000,
         verbose=True,
     )
     train_callbacks.append(ckpt_fixed_callback)
@@ -205,7 +213,8 @@ def main(cfg, auto_remove_exp_dir=False, debug=False):
         strategy=cfg.train.parallel_strategy,
         # setting for overfit debugging
         # limit_val_batches=0,
-        # overfit_batches=2
+        # overfit_batches=2,
+        num_sanity_val_steps=0
     )
 
     trainer.fit(model=model, datamodule=datamodule)
@@ -213,6 +222,20 @@ def main(cfg, auto_remove_exp_dir=False, debug=False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        "--policy_ckpt_dir",
+        type=str,
+        default=None,
+        help="Directory to look for saved checkpoints"
+    )
+
+    parser.add_argument(
+        "--policy_ckpt_key",
+        type=str,
+        default=None,
+        help="A string that uniquely identifies a checkpoint file within a directory, e.g., iter50000"
+    )
 
     # External config file that overwrites default config
     parser.add_argument(
@@ -310,8 +333,8 @@ if __name__ == "__main__":
     if args.debug:
         # Test policy rollout
         default_config.train.validation.every_n_steps = 5
-        default_config.train.save.every_n_steps = 10
-        default_config.train.rollout.every_n_steps = 10
+        default_config.train.save.every_n_steps = 4000
+        default_config.train.rollout.every_n_steps = 4000
         default_config.train.rollout.num_episodes = 1
 
     # make rollout evaluation config consistent with the rest of the config
@@ -327,5 +350,12 @@ if __name__ == "__main__":
         default_config.eval.pop("l5kit")
         # default_config.eval.pop("trajdata")
 
+    load_checkpoint = True
+    if args.policy_ckpt_dir is not None and load_checkpoint:
+        assert args.policy_ckpt_key is not None, "Please specify a key to look for the checkpoint, e.g., 'iter50000'"
+        default_config.ckpt.policy.ckpt_dir = args.policy_ckpt_dir
+        default_config.ckpt.policy.ckpt_key = args.policy_ckpt_key
+        default_config.ckpt.policy.ngc_job_id = None
+
     default_config.lock()  # Make config read-only
-    main(default_config, auto_remove_exp_dir=args.remove_exp_dir, debug=args.debug)
+    main(default_config, auto_remove_exp_dir=args.remove_exp_dir, debug=args.debug, load_checkpoint=load_checkpoint)
