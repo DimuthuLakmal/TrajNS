@@ -160,28 +160,28 @@ class DiffuserModel(nn.Module):
             cond_in_feat_size += hist_feature_dim
 
         # map encoding
-        self.map_encoder = None
-        self.use_map_feat_global = use_map_feat_global
-        self.use_map_feat_grid = use_map_feat_grid
-        self.input_image_shape = input_image_shape
-        if self.use_conditioning and (self.rasterized_map or self.rasterized_hist):
-            self.map_encoder = MapEncoder(
-                model_arch=map_encoder_model_arch,
-                input_image_shape=input_image_shape,
-                global_feature_dim=map_feature_dim if self.use_map_feat_global else None,
-                grid_feature_dim=map_grid_feature_dim if self.use_map_feat_grid else None,
-            )
+        # self.map_encoder = None
+        # self.use_map_feat_global = use_map_feat_global
+        # self.use_map_feat_grid = use_map_feat_grid
+        # self.input_image_shape = input_image_shape
+        # if self.use_conditioning and (self.rasterized_map or self.rasterized_hist):
+        #     self.map_encoder = MapEncoder(
+        #         model_arch=map_encoder_model_arch,
+        #         input_image_shape=input_image_shape,
+        #         global_feature_dim=map_feature_dim if self.use_map_feat_global else None,
+        #         grid_feature_dim=map_grid_feature_dim if self.use_map_feat_grid else None,
+        #     )
 
-            # Changed By Dimuthu
-            self.map_encoder_hist = MapEncoder(
-                model_arch=map_encoder_model_arch,
-                input_image_shape=(1, 224, 224),  # Hardcoded by Dimuthu
-                global_feature_dim=map_feature_dim if self.use_map_feat_global else None,
-                grid_feature_dim=map_grid_feature_dim if self.use_map_feat_grid else None,
-            ).to('cuda')
+        #     # Changed By Dimuthu
+        #     self.map_encoder_hist = MapEncoder(
+        #         model_arch=map_encoder_model_arch,
+        #         input_image_shape=(1, 224, 224),  # Hardcoded by Dimuthu
+        #         global_feature_dim=map_feature_dim if self.use_map_feat_global else None,
+        #         grid_feature_dim=map_grid_feature_dim if self.use_map_feat_grid else None,
+        #     ).to('cuda')
 
-            if self.use_map_feat_global:
-                cond_in_feat_size += map_feature_dim
+        #     if self.use_map_feat_global:
+        #         cond_in_feat_size += map_feature_dim
 
         # MLP to combine conditioning from all sources
         combine_layer_dims = (cond_in_feat_size, cond_in_feat_size, cond_out_feat_size, cond_out_feat_size)
@@ -767,12 +767,12 @@ class DiffuserModel(nn.Module):
             
         # model_prediction = self.model(x, cond, t_inp, aux_info)
         x_model_in = x
-        if self.use_map_feat_grid and self.map_encoder is not None:
-            # get features from map and append to the trajectory
-            map_feat_traj = self.query_map_feats(x_model_in.detach(),
-                                                 aux_info['map_grid_feat'],
-                                                 aux_info['raster_from_agent'])
-            x_model_in = torch.cat([x_model_in, map_feat_traj], dim=-1)
+        # if self.use_map_feat_grid and self.map_encoder is not None:
+        #     # get features from map and append to the trajectory
+        #     map_feat_traj = self.query_map_feats(x_model_in.detach(),
+        #                                          aux_info['map_grid_feat'],
+        #                                          aux_info['raster_from_agent'])
+        #     x_model_in = torch.cat([x_model_in, map_feat_traj], dim=-1)
 
         model_prediction = self.model(x_model_in, aux_info, t_inp)
 
@@ -859,8 +859,9 @@ class DiffuserModel(nn.Module):
         return x_all
 
     @torch.no_grad()
-    def p_sample(self, x, t, data_batch, aux_info={}, num_samp=1, class_free_guide_w=0.0, apply_guidance=True, guide_clean=False, eval_final_guide_loss=False):
-        apply_guidance = True # Changed by Dimuthu.
+    def p_sample(self, x, t, data_batch, aux_info={}, num_samp=1, class_free_guide_w=0.0, apply_guidance=True,
+                 guide_clean=False, eval_final_guide_loss=False):
+        apply_guidance = True  # Changed by Dimuthu.
         b, *_, device = *x.shape, x.device
         with_func = torch.no_grad
         if self.current_perturbation_guidance.current_guidance is not None and apply_guidance and guide_clean == "video_diff":
@@ -871,14 +872,15 @@ class DiffuserModel(nn.Module):
 
         with with_func():
             # get prior mean and variance for next step
-            model_mean, _, model_log_variance, q_posterior_in = self.p_mean_variance(x=x, t=t, aux_info=aux_info, class_free_guide_w=class_free_guide_w)
-        
+            model_mean, _, model_log_variance, q_posterior_in = self.p_mean_variance(x=x, t=t, aux_info=aux_info,
+                                                                                     class_free_guide_w=class_free_guide_w)
+
         sigma = (0.5 * model_log_variance).exp()
-        
+
         # no noise when t == 0
         #       i.e. use the mean of the distribution predicted at the final step rather than sampling.
         nonzero_mask = (1 - (t == 0).float()).reshape(b, *((1,) * (len(x.shape) - 1)))
-        
+
         if self.current_perturbation_guidance.current_guidance is not None and apply_guidance and guide_clean:
             # want to guide the predicted clean traj from model, not the noisy one
             x_initial = q_posterior_in[0]
@@ -903,11 +905,11 @@ class DiffuserModel(nn.Module):
                     perturb_th = self.guidance_optimization_params['perturb_th']
                     apply_guidance_output = self.apply_guidance_output
                     lr = self.guidance_optimization_params['lr']
-                    
+
                     if perturb_th is not None:
                         # gradually decrease clip bounds from 1 to perturb_th
-                        sig_scale = (torch.sigmoid(10 * t[0] / self.n_timesteps) - 1/2) * 2 
-                        perturb_th = sig_scale * (4-perturb_th) + perturb_th
+                        sig_scale = (torch.sigmoid(10 * t[0] / self.n_timesteps) - 1 / 2) * 2
+                        perturb_th = sig_scale * (4 - perturb_th) + perturb_th
                         # print(t[0].item(), 'perturb_th', perturb_th)
                         if not apply_guidance_output:
                             perturb_th = perturb_th * nonzero_mask
@@ -922,19 +924,26 @@ class DiffuserModel(nn.Module):
                     opt_params = deepcopy(self.guidance_optimization_params)
                     opt_params['lr'] = lr
                     opt_params['perturb_th'] = perturb_th
-            
+
             if apply_guidance:
                 if guide_clean == "video_diff":
-                    x_guidance, guide_losses = self.current_perturbation_guidance.perturb_video_diffusion(x_initial, data_batch, opt_params, num_samp=num_samp, return_grad_of=return_grad_of)
+                    x_guidance, guide_losses = self.current_perturbation_guidance.perturb_video_diffusion(x_initial,
+                                                                                                          data_batch,
+                                                                                                          opt_params,
+                                                                                                          num_samp=num_samp,
+                                                                                                          return_grad_of=return_grad_of)
                     # re-compute next step distribution with guided clean & noisy trajectories
                     x_guidance, _, _ = self.q_posterior(x_start=x_guidance, x_t=q_posterior_in[1], t=q_posterior_in[2])
                 else:
-                    x_guidance, guide_losses = self.current_perturbation_guidance.perturb(x_initial, data_batch, opt_params, num_samp=num_samp, return_grad_of=return_grad_of)
-        
+                    x_guidance, guide_losses = self.current_perturbation_guidance.perturb(x_initial, data_batch,
+                                                                                          opt_params, num_samp=num_samp,
+                                                                                          return_grad_of=return_grad_of)
+
         # for filtration only
         if x_guidance is None:
             if self.current_perturbation_guidance.current_guidance is not None and eval_final_guide_loss:
-                _, guide_losses = self.current_perturbation_guidance.compute_guidance_loss(x_initial, data_batch, num_samp=num_samp)
+                _, guide_losses = self.current_perturbation_guidance.compute_guidance_loss(x_initial, data_batch,
+                                                                                           num_samp=num_samp)
 
             x_guidance = x_initial
 
@@ -942,21 +951,21 @@ class DiffuserModel(nn.Module):
         noise = torch.randn_like(x_guidance)
         noise = nonzero_mask * sigma * noise
         x_out = x_guidance + noise
-        
+
         # convert action to state+action
         if self.diffuser_input_mode == 'state_and_action':
             x_out = self.convert_action_to_state_and_action(x_out, aux_info['curr_states'])
         return x_out, guide_losses
-        
+
     @torch.no_grad()
-    def p_sample_loop(self, shape, data_batch, num_samp, 
-                    aux_info={}, 
-                    verbose=True, 
-                    return_diffusion=False,
-                    return_guidance_losses=False,
-                    class_free_guide_w=0.0,
-                    apply_guidance=True,
-                    guide_clean=False):
+    def p_sample_loop(self, shape, data_batch, num_samp,
+                      aux_info={},
+                      verbose=True,
+                      return_diffusion=False,
+                      return_guidance_losses=False,
+                      class_free_guide_w=0.0,
+                      apply_guidance=True,
+                      guide_clean=False):
         device = self.betas.device
 
         batch_size = shape[0]
@@ -964,9 +973,9 @@ class DiffuserModel(nn.Module):
             print('DIFFUSER: Note, not using guidance during sampling, only evaluating guidance loss at very end...')
 
         # sample from base distribution
-        x = torch.randn(shape, device=device) # (B, N, T, D)
+        x = torch.randn(shape, device=device)  # (B, N, T, D)
 
-        x = TensorUtils.join_dimensions(x, begin_axis=0, end_axis=2) # B*N, T, D
+        x = TensorUtils.join_dimensions(x, begin_axis=0, end_axis=2)  # B*N, T, D
 
         aux_info = TensorUtils.repeat_by_expand_at(aux_info, repeats=num_samp, dim=0)
         if return_diffusion: diffusion = [x]
@@ -976,18 +985,19 @@ class DiffuserModel(nn.Module):
         # print('steps', steps)
         for i in steps:
             # print('i', i)
-            timesteps = torch.full((batch_size*num_samp,), i, device=device, dtype=torch.long)
-            
-            x, guide_losses = self.p_sample(x, timesteps, data_batch, aux_info=aux_info, num_samp=num_samp, class_free_guide_w=class_free_guide_w,
-            apply_guidance=apply_guidance, guide_clean=guide_clean, eval_final_guide_loss=(i == steps[-1]))
+            timesteps = torch.full((batch_size * num_samp,), i, device=device, dtype=torch.long)
+
+            x, guide_losses = self.p_sample(x, timesteps, data_batch, aux_info=aux_info, num_samp=num_samp,
+                                            class_free_guide_w=class_free_guide_w,
+                                            apply_guidance=apply_guidance, guide_clean=guide_clean,
+                                            eval_final_guide_loss=(i == steps[-1]))
             # apply hard constraints (overwrite waypoints at certain timesteps)
-            if self.current_constraints is not None: # and i != steps[-1]: # TODO don't do it for last step?
+            if self.current_constraints is not None:  # and i != steps[-1]: # TODO don't do it for last step?
                 # TODO why isn't this working very well? And why is y upside down?
                 # apply constraints expects traj in shape (B, N, T, D) and metric space
                 x = self.descale_traj(x.reshape((shape[0], shape[1], shape[2], -1)))
                 x = apply_constraints(x, data_batch['scene_index'], self.current_constraints)
-                x = self.scale_traj(x.reshape((shape[0]*shape[1], shape[2], -1)))
-
+                x = self.scale_traj(x.reshape((shape[0] * shape[1], shape[2], -1)))
 
             progress.update({'t': i})
 
@@ -997,21 +1007,21 @@ class DiffuserModel(nn.Module):
 
         if any(guide_losses):
             print('===== GUIDANCE LOSSES ======')
-            for k,v in guide_losses.items():
+            for k, v in guide_losses.items():
                 print('%s: %.012f' % (k, np.nanmean(v.cpu())))
 
         x = TensorUtils.reshape_dimensions(x, begin_axis=0, end_axis=1, target_dims=(batch_size, num_samp))
 
-        out_dict = {'pred_traj' : x}
+        out_dict = {'pred_traj': x}
         if return_guidance_losses:
             out_dict['guide_losses'] = guide_losses
         if return_diffusion:
-            diffusion = [TensorUtils.reshape_dimensions(cur_diff, begin_axis=0, end_axis=1, target_dims=(batch_size, num_samp))
-                         for cur_diff in diffusion]
+            diffusion = [
+                TensorUtils.reshape_dimensions(cur_diff, begin_axis=0, end_axis=1, target_dims=(batch_size, num_samp))
+                for cur_diff in diffusion]
             out_dict['diffusion'] = torch.stack(diffusion, dim=3)
 
         return out_dict
-
 
     @torch.no_grad()
     def conditional_sample(self, data_batch, horizon=None, num_samp=1, class_free_guide_w=0.0, **kwargs):
@@ -1021,15 +1031,15 @@ class DiffuserModel(nn.Module):
 
         return self.p_sample_loop(shape, data_batch, num_samp, class_free_guide_w=class_free_guide_w, **kwargs)
 
-    #------------------------------------------ training ------------------------------------------#
+    # ------------------------------------------ training ------------------------------------------#
 
-    def q_sample(self, x_start, t, noise):        
+    def q_sample(self, x_start, t, noise):
         sample = (
-            extract(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start +
-            extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape) * noise
+                extract(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start +
+                extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape) * noise
         )
         return sample
-    
+
     def p_losses(self, x_start_init, t, data_batch, aux_info={}):
         noise_init = torch.randn_like(x_start_init)
         x_start = x_start_init
@@ -1043,12 +1053,12 @@ class DiffuserModel(nn.Module):
             x_action_noisy = x_noisy[..., [4, 5]]
             x_noisy = self.convert_action_to_state_and_action(x_action_noisy, aux_info['curr_states'])
 
-        if self.use_map_feat_grid and self.map_encoder is not None:
-            # get features from map and append to the trajectory
-            map_feat_traj = self.query_map_feats(x_noisy.detach(),
-                                                 aux_info['map_grid_feat'],
-                                                 aux_info['raster_from_agent'])
-            x_noisy = torch.cat([x_noisy, map_feat_traj], dim=-1)
+        # if self.use_map_feat_grid and self.map_encoder is not None:
+        #     # get features from map and append to the trajectory
+        #     map_feat_traj = self.query_map_feats(x_noisy.detach(),
+        #                                          aux_info['map_grid_feat'],
+        #                                          aux_info['raster_from_agent'])
+        #     x_noisy = torch.cat([x_noisy, map_feat_traj], dim=-1)
 
         noise = self.model(x_noisy, aux_info, t_inp)
 
@@ -1061,12 +1071,12 @@ class DiffuserModel(nn.Module):
         else:
             x_recon = self.predict_start_from_noise(x_noisy, t=t, noise=noise)
 
-
-        if self.diffuser_input_mode in ['action', 'state_and_action', 'state_and_action_no_dyn'] and self.action_loss_only:
+        if self.diffuser_input_mode in ['action', 'state_and_action',
+                                        'state_and_action_no_dyn'] and self.action_loss_only:
             x_recon_selected, x_start_selected = x_recon[..., -2:], x_start[..., -2:]
         else:
             x_recon_selected, x_start_selected = x_recon, x_start
-        
+
         if self.use_target_availabilities:
             x_recon_selected = x_recon_selected * data_batch['target_availabilities'][:, :self.horizon].unsqueeze(-1)
             x_start_selected = x_start_selected * data_batch['target_availabilities'][:, :self.horizon].unsqueeze(-1)
@@ -1079,7 +1089,7 @@ class DiffuserModel(nn.Module):
         batch_size = len(x)
 
         t = torch.randint(0, self.n_timesteps, (batch_size,), device=x.device).long()
-            
+
         return self.p_losses(x, t, data_batch, aux_info=aux_info)
 
     def unravel_index(index, shape):

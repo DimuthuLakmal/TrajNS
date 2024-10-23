@@ -38,6 +38,7 @@ from tbsim.utils.guidance_loss import choose_action_from_guidance, choose_action
 from tbsim.utils.trajdata_utils import convert_scene_data_to_agent_coordinates,  add_scene_dim_to_agent_data, get_stationary_mask
 
 from tbsim.models.diffuser_helpers import MapEncoder
+from tbsim.utils.logger import logger
 
 class BehaviorCloning(pl.LightningModule):
     def __init__(self, algo_config, modality_shapes, do_log=True):
