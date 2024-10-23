@@ -37,6 +37,8 @@ from tbsim.models.scenediffuser import SceneDiffuserModel
 from tbsim.utils.guidance_loss import choose_action_from_guidance, choose_action_from_gt
 from tbsim.utils.trajdata_utils import convert_scene_data_to_agent_coordinates,  add_scene_dim_to_agent_data, get_stationary_mask
 
+from tbsim.models.diffuser_helpers import MapEncoder
+
 class BehaviorCloning(pl.LightningModule):
     def __init__(self, algo_config, modality_shapes, do_log=True):
         """
@@ -1768,6 +1770,13 @@ class DiffuserTrafficModel(pl.LightningModule):
             disable_control_on_stationary=self.disable_control_on_stationary,
         )
 
+        self.map_encoder_hist = MapEncoder(
+                model_arch='resnet18',
+                input_image_shape=(1, 224, 224),  # Hardcoded by Dimuthu
+                global_feature_dim=256,
+                grid_feature_dim=None,
+            ).to('cuda')
+
         # set up initial guidance and constraints
         if guidance_config is not None:
             self.set_guidance(guidance_config)
@@ -1923,6 +1932,9 @@ class DiffuserTrafficModel(pl.LightningModule):
                     B = batch["all_other_agents_history_availabilities"].size(0)
                     drop_mask = torch.rand((B)) < self.cond_drop_neighbor_p
                     batch["all_other_agents_history_availabilities"][drop_mask] = 0
+
+
+        
 
         # diffuser only take the data to estimate loss
         losses = self.nets["policy"].compute_losses(batch)

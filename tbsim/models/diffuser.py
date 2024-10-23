@@ -409,22 +409,22 @@ class DiffuserModel(nn.Module):
         #
         # rasterized map (and potentially rasterized past traj)
         #
-        map_grid_feat = map_grid_feat_non_cond = raster_from_agent = None
-        if self.map_encoder is not None:
-            image_batch = data_batch["image"]
-            image_hist_batch = data_batch["image_hist"]
-            map_global_feat, map_grid_feat = self.map_encoder(image_batch, single_map=True)
-            map_global_feat_hist, map_grid_feat_hist = self.map_encoder_hist(image_hist_batch, single_map=False)
-            if self.use_map_feat_global:
-                cond_feat_in = torch.cat([cond_feat_in, map_global_feat], dim=-1)
-            if self.use_map_feat_grid and self.map_encoder is not None:
-                raster_from_agent = data_batch["raster_from_agent"]
+        # map_grid_feat = map_grid_feat_non_cond = raster_from_agent = None
+        # if self.map_encoder is not None:
+        #     image_batch = data_batch["image"]
+        #     image_hist_batch = data_batch["image_hist"]
+        #     map_global_feat, map_grid_feat = self.map_encoder(image_batch, single_map=True)
+        #     map_global_feat_hist, map_grid_feat_hist = self.map_encoder_hist(image_hist_batch, single_map=False)
+        #     if self.use_map_feat_global:
+        #         cond_feat_in = torch.cat([cond_feat_in, map_global_feat], dim=-1)
+        #     if self.use_map_feat_grid and self.map_encoder is not None:
+        #         raster_from_agent = data_batch["raster_from_agent"]
 
-            if include_class_free_cond:
-                image_non_cond = torch.ones_like(image_batch) * self.cond_fill_value
-                map_global_feat_non_cond, map_grid_feat_non_cond = self.map_encoder(image_non_cond)
-                if self.use_map_feat_global:
-                    non_cond_feat_in = torch.cat([non_cond_feat_in, map_global_feat_non_cond], dim=-1)
+        #     if include_class_free_cond:
+        #         image_non_cond = torch.ones_like(image_batch) * self.cond_fill_value
+        #         map_global_feat_non_cond, map_grid_feat_non_cond = self.map_encoder(image_non_cond)
+        #         if self.use_map_feat_global:
+        #             non_cond_feat_in = torch.cat([non_cond_feat_in, map_global_feat_non_cond], dim=-1)
 
         #
         # ego history
@@ -483,16 +483,16 @@ class DiffuserModel(nn.Module):
         aux_info = {
             'cond_feat': cond_feat, 
             'curr_states': curr_states,
-            'map_global_feat_hist': map_global_feat_hist
+            # 'map_global_feat_hist': map_global_feat_hist
         }
         if include_class_free_cond:
             aux_info['non_cond_feat'] = non_cond_feat
 
-        if self.use_map_feat_grid and self.map_encoder is not None:
-            aux_info['map_grid_feat'] = map_grid_feat
-            if include_class_free_cond:
-                aux_info['map_grid_feat_non_cond'] = map_grid_feat_non_cond
-            aux_info['raster_from_agent'] = raster_from_agent
+        # if self.use_map_feat_grid and self.map_encoder is not None:
+        #     aux_info['map_grid_feat'] = map_grid_feat
+        #     if include_class_free_cond:
+        #         aux_info['map_grid_feat_non_cond'] = map_grid_feat_non_cond
+        #     aux_info['raster_from_agent'] = raster_from_agent
 
         return aux_info
     
@@ -614,13 +614,13 @@ class DiffuserModel(nn.Module):
                     return_guidance_losses=False,
                     class_free_guide_w=0.0,
                     apply_guidance=True,
-                    guide_clean=False, global_t=0, stationary_mask=None) -> Dict[str, torch.Tensor]:
+                    guide_clean=False, global_t=0, stationary_mask=None, aux_info={}) -> Dict[str, torch.Tensor]:
         # update stationary_mask at the beginnig of each rollout
         if global_t == 0:
             self.stationary_mask = stationary_mask
         
         use_class_free_guide = class_free_guide_w != 0.0
-        aux_info = self.get_aux_info(data_batch, plan, use_class_free_guide)
+        # aux_info = self.get_aux_info(data_batch, plan, use_class_free_guide)
 
         # target_traj = self.get_state_and_action_from_data_batch(data_batch)
         
@@ -676,8 +676,8 @@ class DiffuserModel(nn.Module):
             out_dict["curr_states"] = aux_info['curr_states']
         return out_dict
 
-    def compute_losses(self, data_batch):
-        aux_info = self.get_aux_info(data_batch)
+    def compute_losses(self, data_batch, aux_info={}):
+        # aux_info = self.get_aux_info(data_batch)
         target_traj = self.get_state_and_action_from_data_batch(data_batch)
         
         if self.use_reconstructed_state and self.diffuser_input_mode in ['state_and_action', 'state_and_action_no_dyn']:
