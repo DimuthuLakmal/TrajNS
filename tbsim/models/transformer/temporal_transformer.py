@@ -25,18 +25,18 @@ class TemporalTransformer(nn.Module):
         proj_input_dim = cond_dim + t_dim
         self.fc_proj = nn.Linear(in_features=proj_input_dim, out_features=dim_model)
         self.time_mlp = nn.Sequential(
-            SinusoidalPosEmb(t_dim),
-            nn.Linear(t_dim, t_dim * 2),
-            nn.Mish(),
-            nn.Linear(t_dim * 2, t_dim),
-        )
+        #     SinusoidalPosEmb(t_dim),
+        #     nn.Linear(t_dim, t_dim * 2),
+        #     nn.Mish(),
+        #     nn.Linear(t_dim * 2, t_dim),
+        # )
 
-        self.decoder = TransformerDecoder(dim_model=decoder_config['dim_model'],
-                                          num_heads=decoder_config['num_heads'],
-                                          num_layers=decoder_config['num_layers']).to('cuda')
+        # self.decoder = TransformerDecoder(dim_model=decoder_config['dim_model'],
+        #                                   num_heads=decoder_config['num_heads'],
+        #                                   num_layers=decoder_config['num_layers']).to('cuda')
 
     def forward(self, x_noise, aux_info, t):
-        t = self.time_mlp(t).unsqueeze(dim=1)
+        # t = self.time_mlp(t).unsqueeze(dim=1)
         x_cond = torch.cat([aux_info['map_global_feat_hist'], t], dim=1)
 
         enc_out = self.encoder(x_cond)

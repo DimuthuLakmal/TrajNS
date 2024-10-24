@@ -245,7 +245,11 @@ class DiffuserModel(nn.Module):
         self.transition_dim = observation_dim + action_dim
         self.output_dim = output_dim
 
-        diffuser_model_arch = 'TemporalTransformer'
+        encoder_config = {'dim_model': 256, 'num_heads': 8, 'num_layers': 4, 'max_seq_len': 31}
+        decoder_config = {'dim_model': 256, 'num_heads': 8, 'num_layers': 4}
+        self.transformer = TemporalTransformer(encoder_config, decoder_config)
+
+        diffuser_model_arch = 'TemporalMapUnet'
         if diffuser_model_arch == "TemporalMapUnet":
             transition_in_dim = self.transition_dim
             if self.use_map_feat_grid and self.map_encoder is not None:
