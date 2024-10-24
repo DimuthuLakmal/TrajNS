@@ -123,7 +123,7 @@ class TemporalMapUnet(nn.Module):
         )
 
         self.encoder = UnetTransformerEncoder(dim_model=16,
-                                                num_heads=8,
+                                                num_heads=4,
                                                 num_encoder_layers=4,
                                                 dropout_p=0.1,
                                                 max_seq_len=horizon)

@@ -37,9 +37,6 @@ from tbsim.models.scenediffuser import SceneDiffuserModel
 from tbsim.utils.guidance_loss import choose_action_from_guidance, choose_action_from_gt
 from tbsim.utils.trajdata_utils import convert_scene_data_to_agent_coordinates,  add_scene_dim_to_agent_data, get_stationary_mask
 
-from tbsim.models.diffuser_helpers import MapEncoder
-from tbsim.utils.logger import logger
-
 class BehaviorCloning(pl.LightningModule):
     def __init__(self, algo_config, modality_shapes, do_log=True):
         """
@@ -1771,13 +1768,6 @@ class DiffuserTrafficModel(pl.LightningModule):
             disable_control_on_stationary=self.disable_control_on_stationary,
         )
 
-        self.map_encoder_hist = MapEncoder(
-                model_arch='resnet18',
-                input_image_shape=(1, 224, 224),  # Hardcoded by Dimuthu
-                global_feature_dim=256,
-                grid_feature_dim=None,
-            ).to('cuda')
-
         # set up initial guidance and constraints
         if guidance_config is not None:
             self.set_guidance(guidance_config)
@@ -1806,27 +1796,24 @@ class DiffuserTrafficModel(pl.LightningModule):
         else:
             return {"valLoss": "val/losses_diffusion_loss"}
 
-    def forward(self, obs_dict, plan=None, step_index=0, num_samp=1, class_free_guide_w=0.0, guide_as_filter_only=False,
-                guide_clean=False, global_t=0, aux_info=None):
+    def forward(self, obs_dict, plan=None, step_index=0, num_samp=1, class_free_guide_w=0.0, guide_as_filter_only=False, guide_clean=False, global_t=0):
 
         if self.disable_control_on_stationary and global_t == 0:
-            self.stationary_mask = get_stationary_mask(obs_dict, self.disable_control_on_stationary,
-                                                       self.moving_speed_th)
+            self.stationary_mask = get_stationary_mask(obs_dict, self.disable_control_on_stationary, self.moving_speed_th)
             B = self.stationary_mask.shape[0]
             # (B, M) -> (B*N, M)
-            stationary_mask_expand = self.stationary_mask.unsqueeze(1).expand(B, num_samp).reshape(B * num_samp)
+            stationary_mask_expand =  self.stationary_mask.unsqueeze(1).expand(B, num_samp).reshape(B*num_samp)
         else:
             stationary_mask_expand = None
-
+    
         cur_policy = self.nets["policy"]
         # this function is only called at validation time, so use ema
         if self.use_ema:
             cur_policy = self.ema_policy
         return cur_policy(obs_dict, plan, num_samp, return_diffusion=True,
-                          return_guidance_losses=True, class_free_guide_w=class_free_guide_w,
-                          apply_guidance=(not guide_as_filter_only),
-                          guide_clean=guide_clean, global_t=global_t, stationary_mask=stationary_mask_expand,
-                          aux_info=aux_info)["predictions"]
+                                   return_guidance_losses=True, class_free_guide_w=class_free_guide_w,
+                                   apply_guidance=(not guide_as_filter_only),
+                                   guide_clean=guide_clean, global_t=global_t, stationary_mask=stationary_mask_expand)["predictions"]
 
     def _compute_metrics(self, pred_batch, data_batch):
         metrics = {}
@@ -1852,8 +1839,7 @@ class DiffuserTrafficModel(pl.LightningModule):
         sample_preds = preds
         conf = np.ones(sample_preds.shape[0:2]) / float(sample_preds.shape[1])
         metrics["ego_avg_ADE"] = Metrics.batch_average_displacement_error(gt, sample_preds, conf, avail, "mean").mean()
-        metrics["ego_min_ADE"] = Metrics.batch_average_displacement_error(gt, sample_preds, conf, avail,
-                                                                          "oracle").mean()
+        metrics["ego_min_ADE"] = Metrics.batch_average_displacement_error(gt, sample_preds, conf, avail, "oracle").mean()
         metrics["ego_avg_FDE"] = Metrics.batch_final_displacement_error(gt, sample_preds, conf, avail, "mean").mean()
         metrics["ego_min_FDE"] = Metrics.batch_final_displacement_error(gt, sample_preds, conf, avail, "oracle").mean()
 
@@ -1905,16 +1891,14 @@ class DiffuserTrafficModel(pl.LightningModule):
         if self.data_centric == 'agent' and self.coordinate == 'agent_centric':
             pass
         elif self.data_centric == 'scene' and self.coordinate == 'agent_centric':
-            batch = convert_scene_data_to_agent_coordinates(batch, merge_BM=True,
-                                                            max_neighbor_dist=self.scene_agent_max_neighbor_dist)
+            batch = convert_scene_data_to_agent_coordinates(batch, merge_BM=True, max_neighbor_dist=self.scene_agent_max_neighbor_dist)
         else:
             raise NotImplementedError
 
         # drop out conditioning if desired
         if self.use_cond:
             if self.use_rasterized_map:
-                num_sem_layers = batch['maps'].size(
-                    1)  # NOTE: this assumes a trajdata-based loader. Will not work with lyft-specific loader.
+                num_sem_layers = batch['maps'].size(1) # NOTE: this assumes a trajdata-based loader. Will not work with lyft-specific loader.
                 if self.cond_drop_map_p > 0:
                     drop_mask = torch.rand((batch["image"].size(0))) < self.cond_drop_map_p
                     # only fill the last num_sem_layers as these correspond to semantic map
@@ -1940,18 +1924,13 @@ class DiffuserTrafficModel(pl.LightningModule):
                     drop_mask = torch.rand((B)) < self.cond_drop_neighbor_p
                     batch["all_other_agents_history_availabilities"][drop_mask] = 0
 
-        aux_info = self.nets["policy"].get_aux_info(batch)
-        image_hist_batch = batch["image_hist"]
-        map_global_feat_hist, map_grid_feat_hist = self.map_encoder_hist(image_hist_batch, single_map=False)
-        aux_info['map_global_feat_hist'] = map_global_feat_hist
-
         # diffuser only take the data to estimate loss
-        losses = self.nets["policy"].compute_losses(batch, aux_info)
+        losses = self.nets["policy"].compute_losses(batch)
 
         total_loss = 0.0
         for lk, l in losses.items():
             if len(self.losses) % 500 == 0 and len(self.losses) > 0:
-                logger.info(torch.mean(torch.stack(self.losses)))
+                print(torch.mean(torch.stack(self.losses)))
             self.losses.append(l)
             losses[lk] = l * self.algo_config.loss_weights[lk]
             total_loss += losses[lk]
@@ -1968,7 +1947,7 @@ class DiffuserTrafficModel(pl.LightningModule):
             "all_losses": losses,
             # "all_metrics": metrics
         }
-
+    
     def validation_step(self, batch, batch_idx):
         cur_policy = self.nets["policy"]
         if self.data_centric is None:
@@ -1982,40 +1961,33 @@ class DiffuserTrafficModel(pl.LightningModule):
         if self.data_centric == 'agent' and self.coordinate == 'agent_centric':
             pass
         elif self.data_centric == 'scene' and self.coordinate == 'agent_centric':
-            batch = convert_scene_data_to_agent_coordinates(batch, merge_BM=True,
-                                                            max_neighbor_dist=self.scene_agent_max_neighbor_dist)
+            batch = convert_scene_data_to_agent_coordinates(batch, merge_BM=True, max_neighbor_dist=self.scene_agent_max_neighbor_dist)
         else:
             raise NotImplementedError
-
-        aux_info = self.nets["policy"].get_aux_info(batch)
-        image_hist_batch = batch["image_hist"]
-        map_global_feat_hist, map_grid_feat_hist = self.map_encoder_hist(image_hist_batch, single_map=False)
-        aux_info['map_global_feat_hist'] = map_global_feat_hist
-
-        losses = TensorUtils.detach(cur_policy.compute_losses(batch, aux_info=aux_info))
-
+        
+        losses = TensorUtils.detach(cur_policy.compute_losses(batch))
+        
         pout = cur_policy(batch,
-                          num_samp=self.algo_config.diffuser.num_eval_samples,
-                          return_diffusion=False,
-                          return_guidance_losses=False,
-                          aux_info=aux_info)
+                        num_samp=self.algo_config.diffuser.num_eval_samples,
+                        return_diffusion=False,
+                        return_guidance_losses=False)
         metrics = self._compute_metrics(pout, batch)
-        return_dict = {"losses": losses, "metrics": metrics}
+        return_dict =  {"losses": losses, "metrics": metrics}
 
         # use EMA for val
         if self.use_ema:
             cur_policy = self.ema_policy
-            ema_losses = TensorUtils.detach(cur_policy.compute_losses(batch, aux_info))
+            ema_losses = TensorUtils.detach(cur_policy.compute_losses(batch))
             pout = cur_policy(batch,
-                              num_samp=self.algo_config.diffuser.num_eval_samples,
-                              return_diffusion=False,
-                              return_guidance_losses=False,
-                              aux_info=aux_info)
+                        num_samp=self.algo_config.diffuser.num_eval_samples,
+                        return_diffusion=False,
+                        return_guidance_losses=False)
             ema_metrics = self._compute_metrics(pout, batch)
             return_dict["ema_losses"] = ema_losses
             return_dict["ema_metrics"] = ema_metrics
 
         return return_dict
+
 
     def validation_epoch_end(self, outputs) -> None:
         for k in outputs[0]["losses"]:
@@ -2024,7 +1996,7 @@ class DiffuserTrafficModel(pl.LightningModule):
         for k in outputs[0]["metrics"]:
             m = np.stack([o["metrics"][k] for o in outputs]).mean()
             self.log("val/metrics_" + k, m)
-
+        
         if self.use_ema:
             for k in outputs[0]["ema_losses"]:
                 m = torch.stack([o["ema_losses"][k] for o in outputs]).mean()
@@ -2036,7 +2008,7 @@ class DiffuserTrafficModel(pl.LightningModule):
     def configure_optimizers(self):
         optim_params = self.algo_config.optim_params["policy"]
         return optim.Adam(
-            params=list(self.map_encoder_hist.parameters()) + list(self.nets["policy"].parameters()),
+            params=self.nets["policy"].parameters(),
             lr=optim_params["learning_rate"]["initial"],
         )
 
@@ -2053,12 +2025,12 @@ class DiffuserTrafficModel(pl.LightningModule):
         return plan, {}
 
     def get_action(self, obs_dict,
-                   num_action_samples=1,
-                   class_free_guide_w=0.0,
-                   guide_as_filter_only=False,
-                   guide_with_gt=False,
-                   guide_clean=False,
-                   **kwargs):
+                    num_action_samples=1,
+                    class_free_guide_w=0.0, 
+                    guide_as_filter_only=False,
+                    guide_with_gt=False,
+                    guide_clean=False,
+                    **kwargs):
         plan = kwargs.get("plan", None)
 
         cur_policy = self.nets["policy"]
@@ -2074,19 +2046,13 @@ class DiffuserTrafficModel(pl.LightningModule):
 
         # already called in policy_composer, but just for good measure...
         cur_policy.eval()
-        self.map_encoder_hist.eval()
 
         # update with current "global" timestep
         cur_policy.update_guidance(global_t=kwargs['step_index'])
-
-        aux_info = self.nets["policy"].get_aux_info(obs_dict)
-        image_hist_batch = obs_dict["image_hist"]
-        map_global_feat_hist, map_grid_feat_hist = self.map_encoder_hist(image_hist_batch, single_map=False)
-        aux_info['map_global_feat_hist'] = map_global_feat_hist
-
+        
         preds = self(obs_dict, plan, num_samp=num_action_samples,
-                     class_free_guide_w=class_free_guide_w, guide_as_filter_only=guide_as_filter_only,
-                     guide_clean=guide_clean, global_t=kwargs['step_index'], aux_info=aux_info)
+                    class_free_guide_w=class_free_guide_w, guide_as_filter_only=guide_as_filter_only,
+                    guide_clean=guide_clean, global_t=kwargs['step_index']) 
         # [B, N, T, 2]
         B, N, _, _ = preds["positions"].size()
 
@@ -2097,13 +2063,11 @@ class DiffuserTrafficModel(pl.LightningModule):
         elif cur_policy.current_perturbation_guidance.current_guidance is not None:
             # choose sample closest to desired guidance
             guide_losses = preds.pop("guide_losses", None)
-
+            
             # from tbsim.models.diffuser_helpers import choose_act_using_guide_loss
             # act_idx = choose_act_using_guide_loss(guide_losses, cur_policy.current_perturbation_guidance.current_guidance.guide_configs, act_idx)
-            act_idx = choose_action_from_guidance(preds, obs_dict,
-                                                  cur_policy.current_perturbation_guidance.current_guidance.guide_configs,
-                                                  guide_losses)
-
+            act_idx = choose_action_from_guidance(preds, obs_dict, cur_policy.current_perturbation_guidance.current_guidance.guide_configs, guide_losses)          
+                    
         action_preds = TensorUtils.map_tensor(preds, lambda x: x[torch.arange(B), act_idx])
 
         preds_positions = preds["positions"]
@@ -2114,13 +2078,14 @@ class DiffuserTrafficModel(pl.LightningModule):
 
         if self.disable_control_on_stationary and self.stationary_mask is not None:
             stationary_mask_expand = self.stationary_mask.unsqueeze(1).expand(B, N)
-
+            
             preds_positions[stationary_mask_expand] = 0
             preds_yaws[stationary_mask_expand] = 0
 
             action_preds_positions[self.stationary_mask] = 0
             action_preds_yaws[self.stationary_mask] = 0
 
+        
         info = dict(
             action_samples=Action(
                 positions=preds_positions,
@@ -2145,13 +2110,14 @@ class DiffuserTrafficModel(pl.LightningModule):
         if self.use_ema:
             cur_policy = self.ema_policy
         cur_policy.set_guidance(guidance_config, example_batch)
-
+    
     def clear_guidance(self):
         cur_policy = self.nets["policy"]
         # use EMA for val
         if self.use_ema:
             cur_policy = self.ema_policy
         cur_policy.clear_guidance()
+
 
     def set_constraints(self, constraint_config):
         '''
@@ -2172,7 +2138,7 @@ class DiffuserTrafficModel(pl.LightningModule):
         if self.use_ema:
             cur_policy = self.ema_policy
         cur_policy.set_guidance_optimization_params(guidance_optimization_params)
-
+    
     def set_diffusion_specific_params(self, diffusion_specific_params):
         cur_policy = self.nets["policy"]
         # use EMA for val
