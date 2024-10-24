@@ -5,10 +5,10 @@ from tbsim.models.transformer.position_wise_feed_forward import PositionWiseFeed
 
 
 class EncoderBlock(nn.Module):
-    def __init__(self, embed_dim, num_heads, src_dropout, ff_dropout, expansion_factor):
+    def __init__(self, embed_dim, num_heads, src_dropout, ff_dropout, expansion_factor, mask=False):
         super(EncoderBlock, self).__init__()
 
-        self.attention = MultiHeadAttention(embed_dim, num_heads, mask=False)
+        self.attention = MultiHeadAttention(embed_dim, num_heads, mask=mask)
 
         self.norm1 = nn.LayerNorm(embed_dim)
         self.norm2 = nn.LayerNorm(embed_dim)
