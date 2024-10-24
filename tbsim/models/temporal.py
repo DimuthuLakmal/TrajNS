@@ -13,6 +13,8 @@ from .diffuser_helpers import (
 
 import tbsim.utils.tensor_utils as TensorUtils
 
+# from tbsim.models.transformer.transformer_decoder import TransformerDecoder
+
 class ResidualTemporalMapBlockConcat(nn.Module):
 
     def __init__(self, inp_channels, out_channels, time_embed_dim, horizon, kernel_size=5):
@@ -56,7 +58,8 @@ class TemporalMapUnet(nn.Module):
         output_dim,
         dim=32,
         dim_mults=(1, 2, 4, 8),
-        diffuser_building_block='concat'
+        diffuser_building_block='concat',
+        decoder_config=None
     ):
         super().__init__()
 
@@ -118,6 +121,10 @@ class TemporalMapUnet(nn.Module):
             Conv1dBlock(final_up_dim, final_up_dim, kernel_size=5),
             nn.Conv1d(final_up_dim, output_dim, 1),
         )
+
+        # self.decoder = TransformerDecoder(dim_model=decoder_config['dim_model'],
+        #                                   num_heads=decoder_config['num_heads'],
+        #                                   num_layers=decoder_config['num_layers'])
 
     def forward(self, x, aux_info, time):
         '''

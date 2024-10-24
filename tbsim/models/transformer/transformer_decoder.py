@@ -12,8 +12,8 @@ class TransformerDecoder(nn.Module):
         self.dim_model = dim_model
         self.num_heads = num_heads
         self.num_layers = num_layers
-        emb_dim = 256
-        input_dim = 6
+        emb_dim = 16
+        input_dim = 2
         out_dim = 2
         # input_dim = configs['input_dim']
 

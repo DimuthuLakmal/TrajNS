@@ -246,22 +246,23 @@ class DiffuserModel(nn.Module):
         self.output_dim = output_dim
 
         encoder_config = {'dim_model': 256, 'num_heads': 8, 'num_layers': 4, 'max_seq_len': 31}
-        decoder_config = {'dim_model': 256, 'num_heads': 8, 'num_layers': 4}
+        decoder_config = {'dim_model': 2, 'num_heads': 8, 'num_layers': 4}
         self.transformer = TemporalTransformer(encoder_config, decoder_config)
 
         diffuser_model_arch = 'TemporalMapUnet'
         if diffuser_model_arch == "TemporalMapUnet":
             transition_in_dim = self.transition_dim
-            if self.use_map_feat_grid and self.map_encoder is not None:
-                # will be appending map features to each step of trajectory
-                transition_in_dim += map_grid_feature_dim
+            # if self.use_map_feat_grid and self.map_encoder is not None:
+            #     # will be appending map features to each step of trajectory
+            #     transition_in_dim += map_grid_feature_dim
             self.model = TemporalMapUnet(horizon=horizon,
                                       transition_dim=transition_in_dim,
                                       cond_dim=cond_out_feat_size,
                                       output_dim=self.output_dim,
                                       dim=base_dim,
                                       dim_mults=dim_mults,
-                                      diffuser_building_block=diffuser_building_block)
+                                      diffuser_building_block=diffuser_building_block,
+                                      decoder_config=decoder_config)
         elif diffuser_model_arch == "TemporalTransformer":
             encoder_config = {'dim_model': 256, 'num_heads': 8, 'num_layers': 4, 'max_seq_len': 31}
             decoder_config = {'dim_model': 256, 'num_heads': 8, 'num_layers': 4}
@@ -485,7 +486,7 @@ class DiffuserModel(nn.Module):
         
         # TBD: maybe add only necessary info from data_batch into aux_info
         aux_info = {
-            'cond_feat': cond_feat, 
+            # 'cond_feat': cond_feat, 
             'curr_states': curr_states,
             # 'map_global_feat_hist': map_global_feat_hist
         }
@@ -627,6 +628,8 @@ class DiffuserModel(nn.Module):
         # aux_info = self.get_aux_info(data_batch, plan, use_class_free_guide)
 
         # target_traj = self.get_state_and_action_from_data_batch(data_batch)
+        enc_out = self.transformer(aux_info)
+        aux_info['cond_feat'] = enc_out
         
         cond_samp_out = self.conditional_sample(data_batch, 
                                                 horizon=None,
@@ -682,6 +685,9 @@ class DiffuserModel(nn.Module):
 
     def compute_losses(self, data_batch, aux_info={}):
         # aux_info = self.get_aux_info(data_batch)
+        enc_out = self.transformer(aux_info)
+        aux_info['cond_feat'] = enc_out
+
         target_traj = self.get_state_and_action_from_data_batch(data_batch)
         
         if self.use_reconstructed_state and self.diffuser_input_mode in ['state_and_action', 'state_and_action_no_dyn']:
