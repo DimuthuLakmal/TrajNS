@@ -1619,8 +1619,8 @@ def scene_to_video(rasterizer, scene_data, scene_name, output_dir,
         fig.clf()
         plt.close(fig)
 
-    if not first_frame_only:
-        create_video(os.path.join(video_dir, "%03d.png"), video_dir + ".mp4", fps=fps)
+    # if not first_frame_only:
+    #     create_video(os.path.join(video_dir, "%03d.png"), video_dir + ".mp4", fps=fps)
 
 def draw_diffusion_prof(ax, scene_data, frame_i, diffusion_step,
                         val_inds=[4,5],
