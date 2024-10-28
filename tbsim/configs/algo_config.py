@@ -591,7 +591,7 @@ class STRIVEConfig(BehaviorCloningConfig):
         self.dynamics.ddh_bound = (-math.pi * 2.0, math.pi * 2.0)
         self.dynamics.max_speed = 40.0  # roughly 90mph
 
-        self.optim_params.policy.learning_rate.initial = 2e-4  # policy learning rate
+        self.optim_params.policy.learning_rate.initial = 1e-4  # policy learning rate
         self.optim_params.policy.learning_rate.decay_factor = (
             0.1  # factor to decay LR by (if epoch schedule non-empty)
         )
