@@ -42,7 +42,7 @@ class UnetTransformerEncoder(nn.Module):
         out_e = self.positional_encoder(self.action_emb(x))
 
         for enc_layer, conv_layer in zip(self.layers, self.conv_layers):
-            # out_e = conv_layer(out_e.transpose(1, 2)).transpose(1, 2)
+            out_e = conv_layer(out_e.transpose(1, 2)).transpose(1, 2)
             q, k, v = out_e, out_e, out_e
             out_e = enc_layer(q, k, v)  # output of temporal encoder layer
   
