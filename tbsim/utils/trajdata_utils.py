@@ -141,19 +141,34 @@ def rasterize_agents(
     raster_hist_pos[..., 1].clip_(0, (h - 1))
     raster_hist_pos = torch.round(raster_hist_pos).long()  # round pixels
 
+    relative_xy = raster_hist_pos - raster_hist_pos[:, :, 0:1]
+    relative_dist = 1/(1 + (relative_xy[:, :, :, 0].pow(2) + relative_xy[:, :, :, 1].pow(2)).sqrt().unsqueeze(dim=-1))
+    relative_dist = relative_dist.type(torch.FloatTensor).to(relative_dist.device)
+
+    relative_dist = relative_dist.reshape(b, a * t, 1)
+    agent_mask = agent_mask.permute(0, 2, 1).reshape(b, a * t)
+    relative_dist[~agent_mask] = 0.0
+    relative_dist = relative_dist.reshape(b, t, a, 1)
+
     raster_hist_pos_flat = raster_hist_pos[..., 1] * w + raster_hist_pos[..., 0]  # [B, T, A]
 
-    hist_image = torch.zeros(b, t, h * w, dtype=maps.dtype, device=maps.device)  # [B, T, H * W]
+    hist_image = torch.zeros(b, t, h * w, 3, dtype=maps.dtype, device=maps.device)  # [B, T, H * W]
+    maps_hist = maps.permute(0, 2, 3, 1).unsqueeze(dim=1).repeat(1, t, 1, 1, 1).reshape(b, t, h*w, 3)
 
-    hist_image.scatter_(dim=2, index=raster_hist_pos_flat[:, :, 1:], src=torch.ones_like(hist_image) * -1)  # mark other agents with -1
-    hist_image.scatter_(dim=2, index=raster_hist_pos_flat[:, :, [0]], src=torch.ones_like(hist_image))  # mark ego with 1.
-    hist_image[:, :, 0] = 0  # correct the 0th index from invalid positions
-    hist_image[:, :, -1] = 0  # correct the maximum index caused by out of bound locations
+    white = torch.tensor([1, 1, 1], device=maps.device)
+    green = torch.tensor([0, 1, 0], device=maps.device)
+    maps_hist.scatter_(dim=2, index=raster_hist_pos_flat[:, :, 1:].unsqueeze(dim=-1).repeat(1, 1, 1, 3), src=torch.ones((b, t, h * w, 1), device=maps.device) * white)  # mark other agents with -1
+    maps_hist.scatter_(dim=2, index=raster_hist_pos_flat[:, :, [0]].unsqueeze(dim=-1).repeat(1, 1, 1, 3), src=torch.ones((b, t, h * w, 1), device=maps.device) * green) # mark ego with 1.
+    # hist_image[:, :, 0] = 0  # correct the 0th index from invalid positions
+    # hist_image[:, :, -1] = 0  # correct the maximum index caused by out of bound locations
 
-    hist_image = hist_image.reshape(b, t, h, w)
+    hist_image = maps_hist.reshape(b, t, h, w, 3).permute(0, 1, 4, 2, 3)
 
-    maps = torch.cat((hist_image, maps), dim=1)  # treat time as extra channels
-    return maps, hist_image
+    # saving image
+    # save_image(maps[0], 'maps.png')
+    # save_image(hist_image[0][15].permute(2, 0, 1), 'maps_hist.png')
+
+    return maps, hist_image, relative_dist
 
 
 def get_drivable_region_map(maps):
@@ -343,30 +358,33 @@ def parse_scene_centric(batch: dict):
     )
     return d
 
+
 def parse_node_centric(batch: dict, overwrite_nan=True):
     maybe_pad_neighbor(batch)
     fut_pos, fut_yaw, _, fut_mask = trajdata2posyawspeed(batch["agent_fut"], nan_to_zero=overwrite_nan)
     hist_pos, hist_yaw, hist_speed, hist_mask = trajdata2posyawspeed(batch["agent_hist"], nan_to_zero=overwrite_nan)
     curr_speed = hist_speed[..., -1]
     curr_state = batch["curr_agent_state"]
-    assert isinstance(curr_state,StateTensor) or isinstance(curr_state,StateArray)
-    h1, h2 = curr_state[:, -1], curr_state.heading[...,0]
+    assert isinstance(curr_state, StateTensor) or isinstance(curr_state, StateArray)
+    h1, h2 = curr_state[:, -1], curr_state.heading[..., 0]
     p1, p2 = curr_state[:, :2], curr_state.position
     assert torch.all(h1[~torch.isnan(h1)] == h2[~torch.isnan(h2)])
     assert torch.all(p1[~torch.isnan(p1)] == p2[~torch.isnan(p2)])
-    curr_yaw = curr_state.heading[...,0]
+    curr_yaw = curr_state.heading[..., 0]
     curr_pos = curr_state.position
 
     # convert nuscenes types to l5kit types
     agent_type = batch["agent_type"]
     agent_type = convert_nusc_type_to_lyft_type(agent_type)
-    
+
     # mask out invalid extents
     agent_hist_extent = batch["agent_hist_extent"]
     agent_hist_extent[torch.isnan(agent_hist_extent)] = 0.
     neigh_indices = batch["neigh_indices"]
-    neigh_hist_pos, neigh_hist_yaw, neigh_hist_speed, neigh_hist_mask = trajdata2posyawspeed(batch["neigh_hist"], nan_to_zero=overwrite_nan)
-    neigh_fut_pos, neigh_fut_yaw, _, neigh_fut_mask = trajdata2posyawspeed(batch["neigh_fut"], nan_to_zero=overwrite_nan)
+    neigh_hist_pos, neigh_hist_yaw, neigh_hist_speed, neigh_hist_mask = trajdata2posyawspeed(batch["neigh_hist"],
+                                                                                             nan_to_zero=overwrite_nan)
+    neigh_fut_pos, neigh_fut_yaw, _, neigh_fut_mask = trajdata2posyawspeed(batch["neigh_fut"],
+                                                                           nan_to_zero=overwrite_nan)
     neigh_curr_speed = neigh_hist_speed[..., -1]
     neigh_types = batch["neigh_types"]
     # convert nuscenes types to l5kit types
@@ -378,16 +396,16 @@ def parse_node_centric(batch: dict, overwrite_nan=True):
     world_from_agents = torch.inverse(batch["agents_from_world_tf"])
 
     raster_cfg = BATCH_RASTER_CFG
-    map_res = 1.0 / raster_cfg["pixel_size"] # convert to pixels/meter
+    map_res = 1.0 / raster_cfg["pixel_size"]  # convert to pixels/meter
     h = w = raster_cfg["raster_size"]
     ego_cent = raster_cfg["ego_center"]
 
     raster_from_agent = torch.Tensor([
-            [map_res, 0, ((1.0 + ego_cent[0])/2.0) * w],
-            [0, map_res, ((1.0 + ego_cent[1])/2.0) * h],
-            [0, 0, 1]
+        [map_res, 0, ((1.0 + ego_cent[0]) / 2.0) * w],
+        [0, map_res, ((1.0 + ego_cent[1]) / 2.0) * h],
+        [0, 0, 1]
     ]).to(curr_state.device)
-    
+
     bsize = batch["agents_from_world_tf"].shape[0]
     agent_from_raster = torch.inverse(raster_from_agent)
     raster_from_agent = TensorUtils.unsqueeze_expand_at(raster_from_agent, size=bsize, dim=0)
@@ -396,11 +414,12 @@ def parse_node_centric(batch: dict, overwrite_nan=True):
 
     all_hist_pos = torch.cat((hist_pos[:, None], neigh_hist_pos.to(hist_pos.device)), dim=1)
     all_hist_yaw = torch.cat((hist_yaw[:, None], neigh_hist_yaw.to(hist_pos.device)), dim=1)
+    all_hist_speed = torch.cat((hist_speed[:, None], neigh_hist_speed.to(hist_pos.device)), dim=1)
     all_hist_mask = torch.cat((hist_mask[:, None], neigh_hist_mask.to(hist_pos.device)), dim=1)
 
     maps_rasterize_in = batch["maps"]
     if maps_rasterize_in is None and BATCH_RASTER_CFG["include_hist"]:
-        maps_rasterize_in = torch.empty((bsize, 0, h, w)).to(all_hist_pos.device)
+        maps_rasterize_in = torch.empty((bsize, 3, h, w)).to(all_hist_pos.device)  # Changed 0 to 3 by Dimuthu
     elif maps_rasterize_in is not None:
         maps_rasterize_in = verify_map(maps_rasterize_in)
 
@@ -410,7 +429,7 @@ def parse_node_centric(batch: dict, overwrite_nan=True):
         # first T channels are rasterized history (single pixel where agent is)
         #       -1 for ego, 1 for others
         # last num_sem_layers are direclty the channels from data loader
-        maps, hist_maps = rasterize_agents(
+        maps, hist_maps, relative_xy = rasterize_agents(
             maps_rasterize_in,
             all_hist_pos,
             all_hist_yaw,
@@ -457,6 +476,11 @@ def parse_node_centric(batch: dict, overwrite_nan=True):
         raster_from_world=raster_from_world,
         agent_from_world=batch["agents_from_world_tf"],
         world_from_agent=world_from_agents,
+        all_agents_history_positions=all_hist_pos,
+        all_agents_history_yaws=all_hist_yaw,
+        all_agents_history_speeds=all_hist_speed,
+        all_agents_relative_xy=relative_xy,
+        all_agents_history_availability=all_hist_mask,
         all_other_agents_indices=neigh_indices,
         all_other_agents_history_positions=neigh_hist_pos,
         all_other_agents_history_yaws=neigh_hist_yaw,
@@ -474,6 +498,7 @@ def parse_node_centric(batch: dict, overwrite_nan=True):
     if "agent_lanes" in batch:
         d["ego_lanes"] = batch["agent_lanes"]
     return d
+
 
 def verify_map(batch_maps):
     '''

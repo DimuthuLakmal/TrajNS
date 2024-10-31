@@ -2,15 +2,15 @@ import torch
 from torch import nn
 
 from tbsim.models.diffuser_helpers import SinusoidalPosEmb
+from tbsim.models.transformer.graph_transformer_encoder import GraphTransformerEncoder
 from tbsim.models.transformer.transformer_encoder import TransformerEncoder
-from tbsim.models.transformer.transformer_decoder import TransformerDecoder
 
 
-class TemporalTransformer(nn.Module):
+class SpatioTemporalTransformer(nn.Module):
     def __init__(self, encoder_config, decoder_config):
-        super(TemporalTransformer, self).__init__()
+        super(SpatioTemporalTransformer, self).__init__()
 
-        self.encoder = TransformerEncoder(
+        self.image_encoder = TransformerEncoder(
             dim_model=encoder_config['dim_model'],
             num_heads=encoder_config['num_heads'],
             num_encoder_layers=encoder_config['num_layers'],
@@ -18,6 +18,14 @@ class TemporalTransformer(nn.Module):
             max_seq_len=encoder_config['max_seq_len']+1,
             map=True,
             agent_hist=False).to('cuda')
+
+        self.graph_encoder = GraphTransformerEncoder(
+            dim_model=encoder_config['dim_model'],
+            num_heads=encoder_config['num_heads'],
+            num_encoder_layers=encoder_config['num_layers'],
+            dropout_p=0.2,
+            max_seq_len=encoder_config['max_seq_len']).to('cuda')
+
 
         dim_model = encoder_config['dim_model']
         t_dim = 256
@@ -39,7 +47,12 @@ class TemporalTransformer(nn.Module):
         # t = self.time_mlp(t).unsqueeze(dim=1)
         # x_cond = torch.cat([aux_info['map_global_feat_hist'], t], dim=1)
 
-        enc_out = self.encoder(aux_info['map_global_feat_hist'])
+        graph_enc_out = self.graph_encoder(aux_info)[:, 0]
+        image_enc_out = self.encoder(aux_info['map_global_feat_hist'])
+
+        enc_out = torch.cat([graph_enc_out, image_enc_out], dim=-1)
+        enc_out = self.fc_enc_proj(enc_out)
+
         # dec_out = self.decoder(x_noise, enc_out)
 
         return enc_out

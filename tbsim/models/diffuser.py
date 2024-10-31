@@ -29,7 +29,7 @@ from .diffuser_helpers import (
 from .temporal import TemporalMapUnet
 import tbsim.dynamics as dynamics
 from tbsim.utils.guidance_loss import verify_guidance_config_list, verify_constraint_config, apply_constraints, DiffuserGuidance, PerturbationGuidance
-from .transformer.temporal_transformer import TemporalTransformer
+from .transformer.spatio_temporal_transformer import SpatioTemporalTransformer
 
 
 def fprint(*args):
@@ -190,6 +190,8 @@ class DiffuserModel(nn.Module):
                                                 combine_layer_dims,
                                                 normalization=True)
 
+        self.cond_feat_fc = nn.Linear(cond_in_feat_size, 64)
+
             # self.map_encoder = base_models.RasterizedMapEncoder(
             #     model_arch=map_encoder_model_arch,
             #     input_image_shape=input_image_shape,
@@ -247,7 +249,7 @@ class DiffuserModel(nn.Module):
 
         encoder_config = {'dim_model': 256, 'num_heads': 8, 'num_layers': 4, 'max_seq_len': 31}
         decoder_config = {'dim_model': 2, 'num_heads': 8, 'num_layers': 4}
-        self.transformer = TemporalTransformer(encoder_config, decoder_config)
+        self.transformer = SpatioTemporalTransformer(encoder_config, decoder_config)
 
         diffuser_model_arch = 'TemporalMapUnet'
         if diffuser_model_arch == "TemporalMapUnet":
@@ -478,20 +480,52 @@ class DiffuserModel(nn.Module):
         #
         # Process all features together
         #
-        cond_feat = self.process_cond_mlp(cond_feat_in)
-        non_cond_feat = None
-        if include_class_free_cond:
-            non_cond_feat = self.process_cond_mlp(non_cond_feat_in)
+        # cond_feat = self.process_cond_mlp(cond_feat_in)
+        # non_cond_feat = None
+        # if include_class_free_cond:
+        #     non_cond_feat = self.process_cond_mlp(non_cond_feat_in)
 
-        
+        cond_feat_in = self.cond_feat_fc(cond_feat_in)
+        all_hist_feat = torch.concat((
+            data_batch["all_agents_history_positions"],
+            # data_batch["all_agents_history_yaws"],
+            data_batch["all_agents_history_speeds"].unsqueeze(dim=-1),
+            # data_batch["all_agents_history_availability"].unsqueeze(dim=-1)
+        ), dim=-1)
+
+        # edge index and edge weights
+        mask_perm = data_batch['all_agents_history_availability'].permute(0, 2, 1)
+        masked_index = torch.arange(mask_perm.shape[-1]).expand(mask_perm.shape[0], mask_perm.shape[1],
+                                                                mask_perm.shape[2]).to(device=mask_perm.device)
+        # masked_index = torch.where(mask_perm, masked_index,
+        #                         torch.tensor(0).to(device=mask_perm.device))  # masking unwanted edges. Commenting this one bacuse GAT values becomes incorrect.
+        b, t, n = masked_index.shape
+
+        masked_index = masked_index.reshape(b, t * n)
+
+        distance_values = torch.arange(t) * n
+        distance_tensor = distance_values.repeat_interleave(n).to(device=masked_index.device)
+
+        first_node_indices = torch.arange(0, t * n, n)
+
+        edge_index_src = torch.where(masked_index > 0, masked_index + distance_tensor, masked_index)
+        edge_index_src[:, first_node_indices] = distance_tensor[first_node_indices]
+        edge_index_dst = torch.unsqueeze(distance_tensor, dim=0).repeat(b, 1)
+        edge_index = torch.stack([edge_index_src, edge_index_dst], dim=1)
+        edge_weight = data_batch['all_agents_relative_xy'].reshape(b, t * n, -1)
+        # end edge index and edge weights
+
         # TBD: maybe add only necessary info from data_batch into aux_info
         aux_info = {
-            # 'cond_feat': cond_feat, 
+            'cond_feat': cond_feat_in,
             'curr_states': curr_states,
-            'map_global_feat_hist': map_global_feat_hist
+            'edge_weight': edge_weight,
+            'edge_index': edge_index,
+            'map_global_feat_hist': map_global_feat_hist,
+            'all_hist_feat': all_hist_feat,
         }
-        if include_class_free_cond:
-            aux_info['non_cond_feat'] = non_cond_feat
+        # if include_class_free_cond:
+        #     aux_info['non_cond_feat'] = non_cond_feat
 
         if self.use_map_feat_grid and self.map_encoder is not None:
             aux_info['map_grid_feat'] = map_grid_feat
