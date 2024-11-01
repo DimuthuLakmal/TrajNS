@@ -105,7 +105,7 @@ def main(cfg, auto_remove_exp_dir=False, debug=False, load_checkpoint=False):
         # Model
         model = algo_factory(
             config=cfg,
-            modality_shapes=datamodule.modality_shapes
+            modality_shapes={"image": (3, 224, 224)}
         )
 
     # Checkpointing
