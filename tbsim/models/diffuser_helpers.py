@@ -337,13 +337,14 @@ class MapEncoder(nn.Module):
         return (H * dim_scale, W * dim_scale )
 
     def forward(self, map_inputs, encoder_feats=None, single_map=True):
-        b, ts, _, _ = map_inputs.shape
+        b = map_inputs.shape[0]
+        ts = map_inputs.shape[1]
         fc_outs = ()
         if single_map:
             fc_out, feat_map_out = self.process_single_map(map_inputs, encoder_feats)
             return fc_out, feat_map_out
         for t in range(ts):
-            fc_out, feat_map_out = self.process_single_map(map_inputs[:, t: t + 1], None)
+            fc_out, feat_map_out = self.process_single_map(map_inputs[:, t: t + 1].squeeze(), None)
             fc_outs = (*fc_outs, fc_out)
 
         fc_outs = torch.stack(fc_outs).permute(1, 0, 2)
@@ -937,4 +938,3 @@ class EMA():
 def angle_wrap_torch(radians):
     pi = torch.tensor(np.pi, device=radians.device)
     return (radians + pi) % (2 * pi) - pi
-
