@@ -493,6 +493,8 @@ class DiffuserModel(nn.Module):
             # data_batch["all_agents_history_availability"].unsqueeze(dim=-1)
         ), dim=-1)
 
+        all_hist_feat[all_hist_feat!=all_hist_feat] = 0
+
         # edge index and edge weights
         mask_perm = data_batch['all_agents_history_availability'].permute(0, 2, 1)
         masked_index = torch.arange(mask_perm.shape[-1]).expand(mask_perm.shape[0], mask_perm.shape[1],
