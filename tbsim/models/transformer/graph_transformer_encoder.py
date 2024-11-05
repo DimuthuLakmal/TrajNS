@@ -22,7 +22,7 @@ class GraphTransformerEncoder(nn.Module):
         out_dim = dim_model
 
         # embedding and positional encoder
-        self.hist_emb = nn.Linear(4, dim_model)
+        self.hist_emb = nn.Linear(3, dim_model)
         self.positional_encoder = PositionalEncoder(max_seq_len, dim_model, matrix_dim=4)
 
         # encoder attention blocks

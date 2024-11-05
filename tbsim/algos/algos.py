@@ -37,6 +37,8 @@ from tbsim.models.scenediffuser import SceneDiffuserModel
 from tbsim.utils.guidance_loss import choose_action_from_guidance, choose_action_from_gt
 from tbsim.utils.trajdata_utils import convert_scene_data_to_agent_coordinates,  add_scene_dim_to_agent_data, get_stationary_mask
 
+from tbsim.utils.logger import logger
+
 class BehaviorCloning(pl.LightningModule):
     def __init__(self, algo_config, modality_shapes, do_log=True):
         """
@@ -1929,9 +1931,10 @@ class DiffuserTrafficModel(pl.LightningModule):
 
         total_loss = 0.0
         for lk, l in losses.items():
-            if len(self.losses) % 500 == 0 and len(self.losses) > 0:
-                print(torch.mean(torch.stack(self.losses)))
-            self.losses.append(l)
+            if len(self.losses) % 200 == 0 and len(self.losses) > 0:
+                logger.info("Diff Error " + str(np.mean(np.array(self.losses))))
+            self.losses.append(l.detach().cpu().numpy())
+
             losses[lk] = l * self.algo_config.loss_weights[lk]
             total_loss += losses[lk]
 

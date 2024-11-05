@@ -20,7 +20,7 @@ class SpatioTemporalTransformer(nn.Module):
             agent_hist=False).to('cuda')
 
         self.graph_encoder = GraphTransformerEncoder(
-            dim_model=encoder_config['dim_model'],
+            dim_model=64,
             num_heads=encoder_config['num_heads'],
             num_encoder_layers=encoder_config['num_layers'],
             dropout_p=0.2,
@@ -28,10 +28,10 @@ class SpatioTemporalTransformer(nn.Module):
 
 
         dim_model = encoder_config['dim_model']
-        t_dim = 256
-        cond_dim = 384
-        proj_input_dim = cond_dim + t_dim
-        self.fc_proj = nn.Linear(in_features=proj_input_dim, out_features=dim_model)
+        # t_dim = 256
+        cond_dim = 320
+        # proj_input_dim = cond_dim + t_dim
+        self.fc_enc_proj = nn.Linear(in_features=31 * cond_dim, out_features=dim_model)
         # self.time_mlp = nn.Sequential(
         #     SinusoidalPosEmb(t_dim),
         #     nn.Linear(t_dim, t_dim * 2),
@@ -48,11 +48,12 @@ class SpatioTemporalTransformer(nn.Module):
         # x_cond = torch.cat([aux_info['map_global_feat_hist'], t], dim=1)
 
         graph_enc_out = self.graph_encoder(aux_info)[:, 0]
-        image_enc_out = self.encoder(aux_info['map_global_feat_hist'])
+        image_enc_out = self.image_encoder(aux_info['map_global_feat_hist'])
 
         enc_out = torch.cat([graph_enc_out, image_enc_out], dim=-1)
-        enc_out = self.fc_enc_proj(enc_out)
 
         # dec_out = self.decoder(x_noise, enc_out)
+        enc_out = enc_out.reshape((enc_out.shape[0], enc_out.shape[1] * enc_out.shape[2]))    
+        enc_out = self.fc_enc_proj(enc_out)
 
         return enc_out

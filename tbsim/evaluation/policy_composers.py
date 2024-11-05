@@ -770,7 +770,7 @@ class Diffuser(PolicyComposer):
             policy = DiffuserTrafficModel.load_from_checkpoint(
                 policy_ckpt_path,
                 algo_config=policy_cfg.algo,
-                modality_shapes=self.get_modality_shapes(policy_cfg),
+                modality_shapes={"image": (3, 224, 224)}, # Changed by Dimuthu from self.get_modality_shapes(policy_cfg)
                 registered_name=policy_cfg["registered_name"],
             ).to(self.device).eval()
             policy_cfg = policy_cfg.clone()

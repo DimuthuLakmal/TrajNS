@@ -49,7 +49,7 @@ class TransformerEncoder(nn.Module):
             [nn.Conv1d(in_channels=self.dim_model, out_channels=self.dim_model, kernel_size=3, stride=1, padding=1)
              for _ in range(self.num_layers)])
 
-        self.fc_out = nn.Linear(31 * dim_model, out_dim)
+        # self.fc_out = nn.Linear(31 * dim_model, out_dim)
 
     def forward(self, x):
         if self.agent_hist:
@@ -63,5 +63,7 @@ class TransformerEncoder(nn.Module):
             q, k, v = out_e, out_e, out_e
             out_e = enc_layer(q, k, v)  # output of temporal encoder layer
 
-        out_e = out_e.reshape((out_e.shape[0], out_e.shape[1] * out_e.shape[2]))    
-        return self.fc_out(out_e)
+        # out_e = out_e.reshape((out_e.shape[0], out_e.shape[1] * out_e.shape[2]))    
+        # return self.fc_out(out_e)
+
+        return out_e

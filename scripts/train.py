@@ -350,7 +350,7 @@ if __name__ == "__main__":
         default_config.eval.pop("l5kit")
         # default_config.eval.pop("trajdata")
 
-    load_checkpoint = False
+    load_checkpoint = True
     if args.policy_ckpt_dir is not None and load_checkpoint:
         assert args.policy_ckpt_key is not None, "Please specify a key to look for the checkpoint, e.g., 'iter50000'"
         default_config.ckpt.policy.ckpt_dir = args.policy_ckpt_dir

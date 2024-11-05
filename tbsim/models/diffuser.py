@@ -175,7 +175,7 @@ class DiffuserModel(nn.Module):
             # Changed By Dimuthu
             self.map_encoder_hist = MapEncoder(
                 model_arch=map_encoder_model_arch,
-                input_image_shape=(1, 224, 224),  # Hardcoded by Dimuthu
+                input_image_shape=(3, 224, 224),  # Hardcoded by Dimuthu
                 global_feature_dim=map_feature_dim if self.use_map_feat_global else None,
                 grid_feature_dim=map_grid_feature_dim if self.use_map_feat_grid else None,
             ).to('cuda')
