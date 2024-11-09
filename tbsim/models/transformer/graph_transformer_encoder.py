@@ -32,8 +32,18 @@ class GraphTransformerEncoder(nn.Module):
                 num_heads=self.num_heads,
                 src_dropout=.2,
                 ff_dropout=0.2,
-                expansion_factor=4
+                expansion_factor=4,
             ) for i in range(self.num_layers)])
+
+        # encoder attention blocks
+        self.layers_temp = nn.ModuleList(
+            [EncoderBlock(
+                embed_dim=dim_model,
+                num_heads=2,
+                src_dropout=.2,
+                ff_dropout=0.2,
+                expansion_factor=4
+            ) for i in range(2)])
 
         self.conv_layers = nn.ModuleList(
             [nn.Conv1d(in_channels=dim_model, out_channels=dim_model, kernel_size=3, stride=1, padding=1)
@@ -53,6 +63,8 @@ class GraphTransformerEncoder(nn.Module):
         self.batch_norm = nn.BatchNorm2d(1)
 
         self.lin_graph = nn.Linear(1, dim_model)
+
+        self.final_conv = nn.Conv1d(in_channels=self.max_seq_len, out_channels=1, kernel_size=3, stride=1, padding=1)
 
     def _get_edge_index(self, n_nodes):
         return [[x for x in range(n_nodes)], [0] * n_nodes]
@@ -83,4 +95,12 @@ class GraphTransformerEncoder(nn.Module):
         graph_out = torch.stack(graph_out).permute(0, 3, 2, 1)  # B, F, N, T
         graph_out = self.batch_norm(graph_out).permute(0, 2, 3, 1)
 
-        return self.lin_graph(graph_out)
+        graph_out = self.lin_graph(graph_out)
+        graph_out = self.final_conv(graph_out[:, 0])
+
+        for enc_layer in self.layers_temp:
+            # out_e = conv_layer(out_e.transpose(1, 2)).transpose(1, 2)
+            q, k, v = graph_out, graph_out, graph_out
+            graph_out = enc_layer(q, k, v)  # output of temporal encoder layer
+
+        return torch.squeeze(graph_out)

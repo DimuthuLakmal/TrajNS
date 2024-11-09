@@ -186,5 +186,5 @@ class TemporalMapUnet(nn.Module):
         if len_x_shape == 4:
             x = x.reshape(BN, M, T, -1)
 
-        x = self.encoder(x)
+        # x = self.encoder(x)
         return x

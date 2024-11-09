@@ -49,6 +49,8 @@ class TransformerEncoder(nn.Module):
             [nn.Conv1d(in_channels=self.dim_model, out_channels=self.dim_model, kernel_size=3, stride=1, padding=1)
              for _ in range(self.num_layers)])
 
+        self.final_conv = nn.Conv1d(in_channels=self.max_seq_len - 1, out_channels=1, kernel_size=3, stride=1, padding=1)
+
         # self.fc_out = nn.Linear(31 * dim_model, out_dim)
 
     def forward(self, x):
@@ -63,7 +65,9 @@ class TransformerEncoder(nn.Module):
             q, k, v = out_e, out_e, out_e
             out_e = enc_layer(q, k, v)  # output of temporal encoder layer
 
+        out_e = self.final_conv(out_e)
+
         # out_e = out_e.reshape((out_e.shape[0], out_e.shape[1] * out_e.shape[2]))    
         # return self.fc_out(out_e)
 
-        return out_e
+        return torch.squeeze(out_e)
