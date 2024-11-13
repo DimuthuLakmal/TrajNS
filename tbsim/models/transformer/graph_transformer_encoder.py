@@ -64,7 +64,9 @@ class GraphTransformerEncoder(nn.Module):
 
         self.lin_graph = nn.Linear(1, dim_model)
 
-        self.final_conv = nn.Conv1d(in_channels=self.max_seq_len, out_channels=1, kernel_size=3, stride=1, padding=1)
+        self.fc_enc_proj = nn.Linear(in_features=31 * dim_model, out_features=dim_model)
+
+        # self.final_conv = nn.Conv1d(in_channels=self.max_seq_len, out_channels=1, kernel_size=3, stride=1, padding=1)
 
     def _get_edge_index(self, n_nodes):
         return [[x for x in range(n_nodes)], [0] * n_nodes]
@@ -96,11 +98,14 @@ class GraphTransformerEncoder(nn.Module):
         graph_out = self.batch_norm(graph_out).permute(0, 2, 3, 1)
 
         graph_out = self.lin_graph(graph_out)
-        graph_out = self.final_conv(graph_out[:, 0])
+        # graph_out = self.final_conv(graph_out[:, 0])
 
         for enc_layer in self.layers_temp:
             # out_e = conv_layer(out_e.transpose(1, 2)).transpose(1, 2)
             q, k, v = graph_out, graph_out, graph_out
             graph_out = enc_layer(q, k, v)  # output of temporal encoder layer
 
-        return torch.squeeze(graph_out)
+        graph_out = graph_out[:, 0].reshape((graph_out.shape[0], graph_out.shape[2] * graph_out.shape[3]))
+        graph_out = self.fc_enc_proj(graph_out)
+
+        return graph_out

@@ -306,7 +306,7 @@ class SceneEditingConfig(EvaluationConfig):
              'params' : {
                             'num_disks' : 2,
                             'buffer_dist': 0.2,
-                            'decay_rate': 0.75,
+                            'decay_rate': 0.9,
                             'excluded_agents': None,
                         },
              'agents' : None,
@@ -317,7 +317,7 @@ class SceneEditingConfig(EvaluationConfig):
              'weight' : 1.0,
              'params' : {
                             'num_points_lw' : (10, 10),
-                            'decay_rate': 0.75,
+                            'decay_rate': 0.9,
                         },
              'agents' : None,
             },   
