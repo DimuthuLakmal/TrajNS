@@ -64,7 +64,9 @@ class GraphTransformerEncoder(nn.Module):
 
         self.lin_graph = nn.Linear(1, dim_model)
 
-        self.fc_enc_proj = nn.Linear(in_features=31 * dim_model, out_features=dim_model)
+        self.fc_enc_proj_1 = nn.Linear(in_features=21 * dim_model, out_features=dim_model*10)
+        self.fc_enc_proj_2 = nn.Linear(in_features=10 * dim_model, out_features=dim_model*5)
+        self.fc_enc_proj_3 = nn.Linear(in_features=5 * dim_model, out_features=dim_model)
 
         # self.final_conv = nn.Conv1d(in_channels=self.max_seq_len, out_channels=1, kernel_size=3, stride=1, padding=1)
 
@@ -106,6 +108,8 @@ class GraphTransformerEncoder(nn.Module):
             graph_out = enc_layer(q, k, v)  # output of temporal encoder layer
 
         graph_out = graph_out[:, 0].reshape((graph_out.shape[0], graph_out.shape[2] * graph_out.shape[3]))
-        graph_out = self.fc_enc_proj(graph_out)
+        graph_out = self.fc_enc_proj_1(graph_out)
+        graph_out = self.fc_enc_proj_2(graph_out)
+        graph_out = self.fc_enc_proj_3(graph_out)
 
         return graph_out

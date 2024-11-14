@@ -247,7 +247,7 @@ class DiffuserModel(nn.Module):
         self.transition_dim = observation_dim + action_dim
         self.output_dim = output_dim
 
-        encoder_config = {'dim_model': 256, 'num_heads': 8, 'num_layers': 4, 'max_seq_len': 31}
+        encoder_config = {'dim_model': 256, 'num_heads': 8, 'num_layers': 4, 'max_seq_len': 21}
         decoder_config = {'dim_model': 2, 'num_heads': 8, 'num_layers': 4}
         self.transformer = SpatioTemporalTransformer(encoder_config, decoder_config)
 

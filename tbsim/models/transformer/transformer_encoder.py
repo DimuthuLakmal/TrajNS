@@ -51,7 +51,9 @@ class TransformerEncoder(nn.Module):
 
         # self.final_conv = nn.Conv1d(in_channels=self.max_seq_len - 1, out_channels=1, kernel_size=3, stride=1, padding=1)
 
-        self.fc_out = nn.Linear(31 * dim_model, out_dim)
+        self.fc_out_1 = nn.Linear(21 * dim_model, out_dim * 10)
+        self.fc_out_2 = nn.Linear(10 * dim_model, out_dim * 5)
+        self.fc_out_3 = nn.Linear(5 * dim_model, out_dim)
 
     def forward(self, x):
         if self.agent_hist:
@@ -68,6 +70,10 @@ class TransformerEncoder(nn.Module):
         # out_e = self.final_conv(out_e)
 
         out_e = out_e.reshape((out_e.shape[0], out_e.shape[1] * out_e.shape[2]))    
-        return self.fc_out(out_e)
+        out_e = self.fc_out_1(out_e)
+        out_e = self.fc_out_2(out_e)
+        out_e = self.fc_out_3(out_e)
+
+        return out_e
 
         # return torch.squeeze(out_e)

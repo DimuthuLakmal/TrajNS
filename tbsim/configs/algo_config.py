@@ -400,7 +400,7 @@ class DiffuserConfig(AlgoConfig):
 
         # data coordinate
         self.coordinate = 'agent_centric'  # ['agent_centric', 'scene_centric']
-        self.scene_agent_max_neighbor_dist = 30  # used only when data_centric == 'scene' and coordinate == 'agent'
+        self.scene_agent_max_neighbor_dist = 20  # used only when data_centric == 'scene' and coordinate == 'agent'
 
         ## model
         self.map_encoder_model_arch = "resnet18"
@@ -475,7 +475,7 @@ class DiffuserConfig(AlgoConfig):
         # TODO bit smaller?
         self.history_feature_dim = 128  # if separate from map
 
-        self.history_num_frames = 30  # param to control the number of time steps to use for history
+        self.history_num_frames = 20  # param to control the number of time steps to use for history
         self.history_num_frames_ego = self.history_num_frames
         self.history_num_frames_agents = self.history_num_frames
 
@@ -495,7 +495,7 @@ class DiffuserConfig(AlgoConfig):
 
         self.loss_weights.diffusion_loss = 1.0
 
-        self.optim_params.policy.learning_rate.initial = 1e-4  # policy learning rate
+        self.optim_params.policy.learning_rate.initial = 2e-4  # policy learning rate
 
         self.optim_params.policy.learning_rate.decay_factor = (
             0.1  # factor to decay LR by (if epoch schedule non-empty)
