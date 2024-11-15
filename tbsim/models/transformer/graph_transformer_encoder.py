@@ -42,12 +42,16 @@ class GraphTransformerEncoder(nn.Module):
                 num_heads=2,
                 src_dropout=.2,
                 ff_dropout=0.2,
-                expansion_factor=4
+                expansion_factor=4,
             ) for i in range(2)])
 
-        self.conv_layers = nn.ModuleList(
+        self.conv_q_layers = nn.ModuleList(
             [nn.Conv1d(in_channels=dim_model, out_channels=dim_model, kernel_size=3, stride=1, padding=1)
-             for _ in range(self.num_layers)])
+             for _ in range(2)])
+
+        self.conv_k_layers = nn.ModuleList(
+            [nn.Conv1d(in_channels=dim_model, out_channels=dim_model, kernel_size=3, stride=1, padding=1)
+             for _ in range(2)])
 
         self.fc_out = nn.Linear(dim_model, out_dim)
 
@@ -79,11 +83,20 @@ class GraphTransformerEncoder(nn.Module):
         x = x['all_hist_feat']
         x = self.hist_emb(x)
         out_e = self.positional_encoder(x)
+        out_e_shp = out_e.shape
 
-        for enc_layer, conv_layer in zip(self.layers, self.conv_layers):
-            # out_e = conv_layer(out_e.transpose(1, 2)).transpose(1, 2)
-            q, k, v = out_e, out_e, out_e
-            out_e = enc_layer(q, k, v)  # output of temporal encoder layer
+        for enc_layer, conv_q, conv_k in zip(self.layers, self.conv_q_layers, self.conv_k_layers):
+             # output of temporal encoder layer
+            out_e = out_e.view(-1, out_e_shp[2], out_e_shp[3])
+            out_transposed = out_e.transpose(2, 1)
+            q = conv_q(out_transposed).transpose(2, 1)
+            k = conv_k(out_transposed).transpose(2, 1)
+            v = out_e
+
+            q = q.reshape(out_e_shp[0], out_e_shp[1], out_e_shp[2], out_e_shp[3])
+            v = v.reshape(out_e_shp[0], out_e_shp[1], out_e_shp[2], out_e_shp[3])
+            k = k.reshape(out_e_shp[0], out_e_shp[1], out_e_shp[2], out_e_shp[3])
+            out_e = enc_layer(q, k, v)
 
         graph_w = out_e.permute(0, 2, 1, 3)
         graph_x = x.permute(0, 2, 1, 3)
