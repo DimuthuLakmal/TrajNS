@@ -51,7 +51,7 @@ class TransformerEncoder(nn.Module):
 
         # self.final_conv = nn.Conv1d(in_channels=self.max_seq_len - 1, out_channels=1, kernel_size=3, stride=1, padding=1)
 
-        self.fc_out_1 = nn.Linear(21 * dim_model, out_dim * 10)
+        self.fc_out_1 = nn.Linear(31 * dim_model, out_dim * 10)
         self.fc_out_2 = nn.Linear(10 * dim_model, out_dim * 5)
         self.fc_out_3 = nn.Linear(5 * dim_model, out_dim)
 

@@ -68,7 +68,7 @@ class GraphTransformerEncoder(nn.Module):
 
         self.lin_graph = nn.Linear(1, dim_model)
 
-        self.fc_enc_proj_1 = nn.Linear(in_features=21 * dim_model, out_features=dim_model*10)
+        self.fc_enc_proj_1 = nn.Linear(in_features=31 * dim_model, out_features=dim_model*10)
         self.fc_enc_proj_2 = nn.Linear(in_features=10 * dim_model, out_features=dim_model*5)
         self.fc_enc_proj_3 = nn.Linear(in_features=5 * dim_model, out_features=dim_model)
 

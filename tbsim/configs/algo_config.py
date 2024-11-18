@@ -475,7 +475,7 @@ class DiffuserConfig(AlgoConfig):
         # TODO bit smaller?
         self.history_feature_dim = 128  # if separate from map
 
-        self.history_num_frames = 20  # param to control the number of time steps to use for history
+        self.history_num_frames = 30  # param to control the number of time steps to use for history
         self.history_num_frames_ego = self.history_num_frames
         self.history_num_frames_agents = self.history_num_frames
 
