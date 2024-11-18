@@ -168,7 +168,7 @@ def rasterize_agents(
     # save_image(maps[0], 'maps.png')
     # save_image(hist_image[0][15].permute(2, 0, 1), 'maps_hist.png')
 
-    return maps, hist_image, relative_dist
+    return maps, hist_image, relative_dist, raster_hist_pos
 
 
 def get_drivable_region_map(maps):
@@ -429,7 +429,7 @@ def parse_node_centric(batch: dict, overwrite_nan=True):
         # first T channels are rasterized history (single pixel where agent is)
         #       -1 for ego, 1 for others
         # last num_sem_layers are direclty the channels from data loader
-        maps, hist_maps, relative_xy = rasterize_agents(
+        maps, hist_maps, relative_xy, all_hist_pos = rasterize_agents(
             maps_rasterize_in,
             all_hist_pos,
             all_hist_yaw,
