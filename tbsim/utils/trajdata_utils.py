@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from torchvision.utils import save_image
 
 import tbsim.utils.tensor_utils as TensorUtils
 import tbsim.utils.geometry_utils as GeoUtils
@@ -166,7 +167,7 @@ def rasterize_agents(
 
     # saving image
     # save_image(maps[0], 'maps.png')
-    # save_image(hist_image[0][15].permute(2, 0, 1), 'maps_hist.png')
+    # save_image(hist_image[0][15], 'maps_hist.png')
 
     return maps, hist_image, relative_dist, raster_hist_pos
 
