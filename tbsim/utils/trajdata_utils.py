@@ -138,14 +138,23 @@ def rasterize_agents(
     raster_hist_pos = transform_points_tensor(agent_hist_pos, raster_from_agent)
     raster_hist_pos[~agent_mask.reshape(b, a * t)] = 0.0  # Set invalid positions to 0.0 Will correct below
     raster_hist_pos = raster_hist_pos.reshape(b, a, t, 2).permute(0, 2, 1, 3)  # [B, T, A, 2]
-    raster_hist_pos[..., 0].clip_(0, (w - 1))
-    raster_hist_pos[..., 1].clip_(0, (h - 1))
-    raster_hist_pos = torch.round(raster_hist_pos).long()  # round pixels
+    # raster_hist_pos[..., 0].clip_(0, (w - 1))
+    # raster_hist_pos[..., 1].clip_(0, (h - 1))
+    hist_x = raster_hist_pos[..., 0]
+    hist_y = raster_hist_pos[..., 1]
+    raster_hist_pos[..., 1] = torch.where((hist_x >= 0.0) & (hist_x <= (w-1)), hist_y, 0.0)
+    raster_hist_pos[..., 0] = torch.where((hist_x >= 0.0) & (hist_x <= (w - 1)), hist_x, 0.0)
+    raster_hist_pos[..., 0] = torch.where((hist_y >= 0.0) & (hist_y <= (h-1)), hist_x, 0.0)
+    raster_hist_pos[..., 1] = torch.where((hist_y >= 0.0) & (hist_y <= (h - 1)), hist_y, 0.0)
+    raster_hist_pos = torch.round(raster_hist_pos).long()
 
-    relative_xy = raster_hist_pos - raster_hist_pos[:, :, 0:1]
+    ego_pos = raster_hist_pos[:, :, 0:1]
+    relative_xy = raster_hist_pos - ego_pos
     relative_dist = 1/(1 + (relative_xy[:, :, :, 0].pow(2) + relative_xy[:, :, :, 1].pow(2)).sqrt().unsqueeze(dim=-1))
     relative_dist = relative_dist.type(torch.FloatTensor).to(relative_dist.device)
 
+    relative_dist[..., 0] = torch.where((raster_hist_pos[..., 1] > 0.0) & (raster_hist_pos[..., 0] > 0.0), relative_dist[..., 0], 0.0)
+    relative_dist[..., 0] = torch.where((ego_pos[..., 0] > 0.0) & (ego_pos[..., 1] > 0.0), relative_dist[..., 0], 0.0)
     relative_dist = relative_dist.reshape(b, a * t, 1)
     agent_mask = agent_mask.permute(0, 2, 1).reshape(b, a * t)
     relative_dist[~agent_mask] = 0.0
@@ -168,6 +177,9 @@ def rasterize_agents(
     # saving image
     # save_image(maps[0], 'maps.png')
     # save_image(hist_image[0][15], 'maps_hist.png')
+
+    raster_hist_pos[..., 0] = raster_hist_pos[..., 0] / (w-1)
+    raster_hist_pos[..., 1] = raster_hist_pos[..., 1] / (h-1)
 
     return maps, hist_image, relative_dist, raster_hist_pos
 
@@ -477,7 +489,7 @@ def parse_node_centric(batch: dict, overwrite_nan=True):
         raster_from_world=raster_from_world,
         agent_from_world=batch["agents_from_world_tf"],
         world_from_agent=world_from_agents,
-        all_agents_history_positions=all_hist_pos.permute(1, 2),
+        all_agents_history_positions=all_hist_pos.permute(0, 2, 1, 3),
         all_agents_history_yaws=all_hist_yaw,
         all_agents_history_speeds=all_hist_speed,
         all_agents_relative_xy=relative_xy,
