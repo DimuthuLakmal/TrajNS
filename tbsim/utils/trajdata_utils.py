@@ -148,13 +148,18 @@ def rasterize_agents(
     raster_hist_pos[..., 1] = torch.where((hist_y >= 0.0) & (hist_y <= (h - 1)), hist_y, 0.0)
     raster_hist_pos = torch.round(raster_hist_pos).long()
 
-    ego_pos = raster_hist_pos[:, :, 0:1]
-    relative_xy = raster_hist_pos - ego_pos
+    # ego_pos = raster_hist_pos[:, :, 0:1]
+    # relative_xy = raster_hist_pos - ego_pos
+    # relative_dist = 1/(1 + (relative_xy[:, :, :, 0].pow(2) + relative_xy[:, :, :, 1].pow(2)).sqrt().unsqueeze(dim=-1))
+    # relative_dist = relative_dist.type(torch.FloatTensor).to(relative_dist.device)
+
+    agent_hist_pos[~agent_mask.reshape(b, a * t)] = 0.0
+    agent_hist_pos = agent_hist_pos.reshape(b, a, t, 2).permute(0, 2, 1, 3)
+    ego_pos = agent_hist_pos[:, :, 0:1]
+    relative_xy = agent_hist_pos - ego_pos
     relative_dist = 1/(1 + (relative_xy[:, :, :, 0].pow(2) + relative_xy[:, :, :, 1].pow(2)).sqrt().unsqueeze(dim=-1))
     relative_dist = relative_dist.type(torch.FloatTensor).to(relative_dist.device)
 
-    relative_dist[..., 0] = torch.where((raster_hist_pos[..., 1] > 0.0) & (raster_hist_pos[..., 0] > 0.0), relative_dist[..., 0], 0.0)
-    relative_dist[..., 0] = torch.where((ego_pos[..., 0] > 0.0) & (ego_pos[..., 1] > 0.0), relative_dist[..., 0], 0.0)
     relative_dist = relative_dist.reshape(b, a * t, 1)
     agent_mask = agent_mask.permute(0, 2, 1).reshape(b, a * t)
     relative_dist[~agent_mask] = 0.0
@@ -194,7 +199,7 @@ def rasterize_agents(
     raster_hist_pos[..., 0] = raster_hist_pos[..., 0] / (w-1)
     raster_hist_pos[..., 1] = raster_hist_pos[..., 1] / (h-1)
 
-    return maps, hist_image, relative_dist, raster_hist_pos
+    return maps, hist_image, relative_dist, agent_hist_pos
 
 
 def get_drivable_region_map(maps):
