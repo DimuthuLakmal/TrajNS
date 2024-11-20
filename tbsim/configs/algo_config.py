@@ -400,7 +400,7 @@ class DiffuserConfig(AlgoConfig):
 
         # data coordinate
         self.coordinate = 'agent_centric'  # ['agent_centric', 'scene_centric']
-        self.scene_agent_max_neighbor_dist = 20  # used only when data_centric == 'scene' and coordinate == 'agent'
+        self.scene_agent_max_neighbor_dist = 30  # used only when data_centric == 'scene' and coordinate == 'agent'
 
         ## model
         self.map_encoder_model_arch = "resnet18"
