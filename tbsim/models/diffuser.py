@@ -175,7 +175,7 @@ class DiffuserModel(nn.Module):
             # Changed By Dimuthu
             self.map_encoder_hist = MapEncoder(
                 model_arch=map_encoder_model_arch,
-                input_image_shape=(3, 224, 224),  # Hardcoded by Dimuthu
+                input_image_shape=(93, 224, 224),  # Hardcoded by Dimuthu
                 global_feature_dim=map_feature_dim if self.use_map_feat_global else None,
                 grid_feature_dim=map_grid_feature_dim if self.use_map_feat_grid else None,
             ).to('cuda')
@@ -421,7 +421,7 @@ class DiffuserModel(nn.Module):
             image_batch = data_batch["image"]
             image_hist_batch = data_batch["image_hist"]
             map_global_feat, map_grid_feat = self.map_encoder(image_batch, single_map=True)
-            map_global_feat_hist, map_grid_feat_hist = self.map_encoder_hist(image_hist_batch, single_map=False)
+            map_global_feat_hist, map_grid_feat_hist = self.map_encoder_hist(image_hist_batch, single_map=True)
             if self.use_map_feat_global:
                 cond_feat_in = torch.cat([cond_feat_in, map_global_feat], dim=-1)
             if self.use_map_feat_grid and self.map_encoder is not None:

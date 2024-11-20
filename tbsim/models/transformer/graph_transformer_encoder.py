@@ -33,6 +33,7 @@ class GraphTransformerEncoder(nn.Module):
                 src_dropout=.2,
                 ff_dropout=0.2,
                 expansion_factor=4,
+                mask=True
             ) for i in range(self.num_layers)])
 
         # encoder attention blocks
