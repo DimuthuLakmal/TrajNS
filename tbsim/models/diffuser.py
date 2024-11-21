@@ -488,9 +488,9 @@ class DiffuserModel(nn.Module):
         cond_feat_in = self.cond_feat_fc(cond_feat_in)
         all_hist_feat = torch.concat((
             data_batch["all_agents_history_positions"],
-            # data_batch["all_agents_history_yaws"],
+            data_batch["all_agents_history_yaws"],
             data_batch["all_agents_history_speeds"].unsqueeze(dim=-1),
-            # data_batch["all_agents_history_availability"].unsqueeze(dim=-1)
+            data_batch["all_agents_history_availability"].unsqueeze(dim=-1)
         ), dim=-1)
 
         all_hist_feat[all_hist_feat!=all_hist_feat] = 0
@@ -906,7 +906,7 @@ class DiffuserModel(nn.Module):
 
     @torch.no_grad()
     def p_sample(self, x, t, data_batch, aux_info={}, num_samp=1, class_free_guide_w=0.0, apply_guidance=True, guide_clean=False, eval_final_guide_loss=False):
-        apply_guidance = True # Changed by Dimuthu.
+        apply_guidance = False # Changed by Dimuthu.
         b, *_, device = *x.shape, x.device
         with_func = torch.no_grad
         if self.current_perturbation_guidance.current_guidance is not None and apply_guidance and guide_clean == "video_diff":

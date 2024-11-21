@@ -20,9 +20,10 @@ class GraphTransformerEncoder(nn.Module):
         self.num_heads = num_heads
         self.num_layers = num_encoder_layers
         out_dim = dim_model
+        dim_model = 32
 
         # embedding and positional encoder
-        self.hist_emb = nn.Linear(3, dim_model)
+        self.hist_emb = nn.Linear(5, dim_model)
         self.positional_encoder = PositionalEncoder(max_seq_len, dim_model, matrix_dim=4)
 
         # encoder attention blocks
@@ -70,7 +71,7 @@ class GraphTransformerEncoder(nn.Module):
         self.lin_graph = nn.Linear(1, dim_model)
 
         self.fc_enc_proj_1 = nn.Linear(in_features=31 * dim_model, out_features=dim_model*10)
-        self.fc_enc_proj_2 = nn.Linear(in_features=10 * dim_model, out_features=256)
+        self.fc_enc_proj_2 = nn.Linear(in_features=10 * dim_model, out_features=out_dim)
         # self.fc_enc_proj_3 = nn.Linear(in_features=5 * dim_model, out_features=dim_model)
 
         # self.final_conv = nn.Conv1d(in_channels=self.max_seq_len, out_channels=1, kernel_size=3, stride=1, padding=1)
