@@ -25,16 +25,17 @@ class GraphTransformerEncoder(nn.Module):
         # embedding and positional encoder
         self.hist_emb = nn.Linear(5, dim_model)
         self.positional_encoder = PositionalEncoder(max_seq_len, dim_model, matrix_dim=4)
+        self.positional_encoder2 = PositionalEncoder(max_seq_len, dim_model, matrix_dim=4)
 
         # encoder attention blocks
         self.layers = nn.ModuleList(
             [EncoderBlock(
                 embed_dim=dim_model,
                 num_heads=self.num_heads,
-                src_dropout=.2,
+                src_dropout=.1,
                 ff_dropout=0.2,
                 expansion_factor=4,
-                mask=True
+                mask=False
             ) for i in range(self.num_layers)])
 
         # encoder attention blocks
@@ -42,18 +43,26 @@ class GraphTransformerEncoder(nn.Module):
             [EncoderBlock(
                 embed_dim=dim_model,
                 num_heads=2,
-                src_dropout=.2,
+                src_dropout=.1,
                 ff_dropout=0.2,
                 expansion_factor=4,
-            ) for i in range(2)])
+            ) for i in range(self.num_layers)])
 
         self.conv_q_layers = nn.ModuleList(
             [nn.Conv1d(in_channels=dim_model, out_channels=dim_model, kernel_size=3, stride=1, padding=1)
-             for _ in range(2)])
+             for _ in range(self.num_layers)])
 
         self.conv_k_layers = nn.ModuleList(
             [nn.Conv1d(in_channels=dim_model, out_channels=dim_model, kernel_size=3, stride=1, padding=1)
-             for _ in range(2)])
+             for _ in range(self.num_layers)])
+
+        self.conv_q_layers_temp = nn.ModuleList(
+            [nn.Conv1d(in_channels=dim_model, out_channels=dim_model, kernel_size=3, stride=1, padding=1)
+             for _ in range(self.num_layers)])
+
+        self.conv_k_layers_temp = nn.ModuleList(
+            [nn.Conv1d(in_channels=dim_model, out_channels=dim_model, kernel_size=3, stride=1, padding=1)
+             for _ in range(self.num_layers)])
 
         self.fc_out = nn.Linear(dim_model, out_dim)
 
@@ -70,8 +79,8 @@ class GraphTransformerEncoder(nn.Module):
 
         self.lin_graph = nn.Linear(1, dim_model)
 
-        self.fc_enc_proj_1 = nn.Linear(in_features=31 * dim_model, out_features=dim_model*10)
-        self.fc_enc_proj_2 = nn.Linear(in_features=10 * dim_model, out_features=out_dim)
+        self.fc_enc_proj_1 = nn.Linear(in_features=31 * dim_model, out_features=dim_model*15)
+        self.fc_enc_proj_2 = nn.Linear(in_features=15 * dim_model, out_features=out_dim)
         # self.fc_enc_proj_3 = nn.Linear(in_features=5 * dim_model, out_features=dim_model)
 
         # self.final_conv = nn.Conv1d(in_channels=self.max_seq_len, out_channels=1, kernel_size=3, stride=1, padding=1)
@@ -114,12 +123,19 @@ class GraphTransformerEncoder(nn.Module):
         graph_out = torch.stack(graph_out).permute(0, 3, 2, 1)  # B, F, N, T
         graph_out = self.batch_norm(graph_out).permute(0, 2, 3, 1)
 
+        # Temporal Transoformer
         graph_out = self.lin_graph(graph_out)
-        # graph_out = self.final_conv(graph_out[:, 0])
+        graph_out = self.positional_encoder2(graph_out)
+        for enc_layer, conv_q, conv_k in zip(self.layers_temp, self.conv_q_layers_temp, self.conv_k_layers_temp):
+            graph_out = graph_out.view(-1, out_e_shp[2], out_e_shp[3])
+            out_transposed = graph_out.transpose(2, 1)
+            q = conv_q(out_transposed).transpose(2, 1)
+            k = conv_k(out_transposed).transpose(2, 1)
+            v = graph_out
 
-        for enc_layer in self.layers_temp:
-            # out_e = conv_layer(out_e.transpose(1, 2)).transpose(1, 2)
-            q, k, v = graph_out, graph_out, graph_out
+            q = q.reshape(out_e_shp[0], out_e_shp[1], out_e_shp[2], out_e_shp[3])
+            v = v.reshape(out_e_shp[0], out_e_shp[1], out_e_shp[2], out_e_shp[3])
+            k = k.reshape(out_e_shp[0], out_e_shp[1], out_e_shp[2], out_e_shp[3])
             graph_out = enc_layer(q, k, v)  # output of temporal encoder layer
 
         graph_out = graph_out[:, 0].reshape((graph_out.shape[0], graph_out.shape[2] * graph_out.shape[3]))

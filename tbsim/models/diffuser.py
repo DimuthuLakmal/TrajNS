@@ -247,7 +247,7 @@ class DiffuserModel(nn.Module):
         self.transition_dim = observation_dim + action_dim
         self.output_dim = output_dim
 
-        encoder_config = {'dim_model': 256, 'num_heads': 8, 'num_layers': 4, 'max_seq_len': 31}
+        encoder_config = {'dim_model': 256, 'num_heads': 8, 'num_layers': 2, 'max_seq_len': 31}
         decoder_config = {'dim_model': 2, 'num_heads': 8, 'num_layers': 4}
         self.transformer = SpatioTemporalTransformer(encoder_config, decoder_config)
 
@@ -906,7 +906,7 @@ class DiffuserModel(nn.Module):
 
     @torch.no_grad()
     def p_sample(self, x, t, data_batch, aux_info={}, num_samp=1, class_free_guide_w=0.0, apply_guidance=True, guide_clean=False, eval_final_guide_loss=False):
-        apply_guidance = False # Changed by Dimuthu.
+        apply_guidance = True # Changed by Dimuthu.
         b, *_, device = *x.shape, x.device
         with_func = torch.no_grad
         if self.current_perturbation_guidance.current_guidance is not None and apply_guidance and guide_clean == "video_diff":

@@ -8,6 +8,7 @@ import wandb
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 
+from tbsim.utils.learning_rate import BatchLearningRateDecay
 from tbsim.utils.log_utils import PrintLogger
 import tbsim.utils.train_utils as TrainUtils
 from tbsim.utils.env_utils import RolloutCallback
@@ -190,6 +191,10 @@ def main(cfg, auto_remove_exp_dir=False, debug=False, load_checkpoint=False):
         logger.watch(model=model)
     else:
         print("WARNING: not logging training stats")
+
+    # adding learning rate decay callback
+    lr_decay_callback = BatchLearningRateDecay(initial_lr=cfg.algo.optim_params.policy.learning_rate.initial, final_lr=5e-7, total_steps=178806)
+    train_callbacks.append(lr_decay_callback)
 
     # Train
     cfg.train.validation.every_n_steps = 10000
