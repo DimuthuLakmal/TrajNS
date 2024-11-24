@@ -167,17 +167,18 @@ def rasterize_agents(
 
     raster_hist_pos_flat = raster_hist_pos[..., 1] * w + raster_hist_pos[..., 0]  # [B, T, A]
 
-    # hist_image = torch.zeros(b, t, h * w, 3, dtype=maps.dtype, device=maps.device)  # [B, T, H * W]
-    # maps_hist = maps.permute(0, 2, 3, 1).unsqueeze(dim=1).repeat(1, t, 1, 1, 1).reshape(b, t, h*w, 3)
-    #
-    # white = torch.tensor([1, 1, 1], device=maps.device)
-    # green = torch.tensor([0, 1, 0], device=maps.device)
-    # maps_hist.scatter_(dim=2, index=raster_hist_pos_flat[:, :, 1:].unsqueeze(dim=-1).repeat(1, 1, 1, 3), src=torch.ones((b, t, h * w, 1), device=maps.device) * white)  # mark other agents with -1
-    # maps_hist.scatter_(dim=2, index=raster_hist_pos_flat[:, :, [0]].unsqueeze(dim=-1).repeat(1, 1, 1, 3), src=torch.ones((b, t, h * w, 1), device=maps.device) * green) # mark ego with 1.
-    # # hist_image[:, :, 0] = 0  # correct the 0th index from invalid positions
-    # # hist_image[:, :, -1] = 0  # correct the maximum index caused by out of bound locations
-    #
-    # hist_image = maps_hist.reshape(b, t, h, w, 3).permute(0, 1, 4, 2, 3)
+    hist_image = torch.zeros(b, t, h * w, 3, dtype=maps.dtype, device=maps.device)  # [B, T, H * W]
+    maps_hist = maps.permute(0, 2, 3, 1).unsqueeze(dim=1).repeat(1, t, 1, 1, 1).reshape(b, t, h*w, 3)
+
+    white = torch.tensor([1, 1, 1], device=maps.device)
+    green = torch.tensor([0, 1, 0], device=maps.device)
+    maps_hist.scatter_(dim=2, index=raster_hist_pos_flat[:, :, 1:].unsqueeze(dim=-1).repeat(1, 1, 1, 3), src=torch.ones((b, t, h * w, 1), device=maps.device) * white)  # mark other agents with -1
+    maps_hist.scatter_(dim=2, index=raster_hist_pos_flat[:, :, [0]].unsqueeze(dim=-1).repeat(1, 1, 1, 3), src=torch.ones((b, t, h * w, 1), device=maps.device) * green) # mark ego with 1.
+    # hist_image[:, :, 0] = 0  # correct the 0th index from invalid positions
+    # hist_image[:, :, -1] = 0  # correct the maximum index caused by out of bound locations
+
+    hist_image = maps_hist.reshape(b, t, h, w, 3).permute(0, 1, 4, 2, 3)
+    save_image(hist_image[0][15], 'maps_hist.png')
 
     hist_image = torch.zeros(b, t, h * w, dtype=maps.dtype, device=maps.device)  # [B, T, H * W]
 
