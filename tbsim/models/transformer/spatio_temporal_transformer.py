@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from torch.cuda.amp import autocast
 from transformers import RobertaModel, DebertaModel
 
 from peft import LoraConfig, get_peft_model
@@ -62,13 +63,11 @@ class SpatioTemporalTransformer(nn.Module):
         #                                   num_layers=decoder_config['num_layers']).to('cuda')
 
     def forward(self, aux_info):
-        # t = self.time_mlp(t).unsqueeze(dim=1)
-        # x_cond = torch.cat([aux_info['map_global_feat_hist'], t], dim=1)
+        with autocast():
+            llm_enc_out = self.llm_data_encoder(aux_info['llm_input_ids'], aux_info['llm_attention_mask'])
+            llm_enc_out = self.llm_proj(llm_enc_out.last_hidden_state[:, 0, :])
 
         graph_enc_out = self.graph_encoder(aux_info)
-
-        llm_enc_out = self.llm_data_encoder(aux_info['llm_input_ids'], aux_info['llm_attention_mask'])
-        llm_enc_out = self.llm_proj(llm_enc_out.last_hidden_state[:, 0, :])
         # image_enc_out = self.image_encoder(aux_info['map_global_feat_hist'])
 
         enc_out = torch.cat([graph_enc_out, aux_info['map_global_feat_hist'], llm_enc_out], dim=-1)
