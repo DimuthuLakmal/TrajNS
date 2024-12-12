@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from torch.cuda.amp import autocast, GradScaler
 from transformers import RobertaModel, DebertaModel
 
 from peft import LoraConfig, get_peft_model
@@ -24,7 +25,7 @@ class SpatioTemporalTransformer(nn.Module):
         #     agent_hist=False).to('cuda')
 
         # self.llm_data_encoder = DebertaWithSingleOutput().to('cuda')
-        deberta_model = DebertaModel.from_pretrained("microsoft/deberta-base")
+        self.deberta_model = DebertaModel.from_pretrained("microsoft/deberta-base")
         # Configure LoRA
         lora_config = LoraConfig(
             task_type="FEATURE_EXTRACTION",  # Task type: Sequence Classification
@@ -34,8 +35,8 @@ class SpatioTemporalTransformer(nn.Module):
             lora_dropout=0.1,  # Dropout rate
         )
         # Wrap the RoBERTa model with LoRA
-        self.llm_data_encoder = get_peft_model(deberta_model, lora_config)
-        self.llm_proj = nn.Linear(deberta_model.config.hidden_size, 64)
+        self.llm_data_encoder = get_peft_model(self.deberta_model, lora_config)
+        self.llm_proj = nn.Linear(self.deberta_model.config.hidden_size, 64)
 
         self.graph_encoder = GraphTransformerEncoder(
             dim_model=64,
@@ -78,3 +79,6 @@ class SpatioTemporalTransformer(nn.Module):
         enc_out = self.fc_enc_proj(enc_out)
 
         return enc_out
+
+    def count_parameters(self, model):
+        return sum(p.numel() for p in model.parameters() if p.requires_grad)
