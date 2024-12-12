@@ -32,7 +32,7 @@ class SpatioTemporalTransformer(nn.Module):
 
         dim_model = encoder_config['dim_model']
         # t_dim = 256
-        cond_dim = 320
+        cond_dim = 384
         # proj_input_dim = cond_dim + t_dim
         self.fc_enc_proj = nn.Linear(in_features=cond_dim, out_features=dim_model)
         # self.time_mlp = nn.Sequential(
@@ -55,7 +55,7 @@ class SpatioTemporalTransformer(nn.Module):
         llm_enc_out = self.llm_data_encoder(aux_info['llm_input_ids'], aux_info['llm_attention_mask'])
         # image_enc_out = self.image_encoder(aux_info['map_global_feat_hist'])
 
-        enc_out = torch.cat([graph_enc_out, aux_info['map_global_feat_hist']], dim=-1)
+        enc_out = torch.cat([graph_enc_out, aux_info['map_global_feat_hist'], llm_enc_out], dim=-1)
 
         # dec_out = self.decoder(x_noise, enc_out)
         # enc_out = enc_out.reshape((enc_out.shape[0], enc_out.shape[1] * enc_out.shape[2]))
