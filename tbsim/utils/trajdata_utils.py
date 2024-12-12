@@ -526,6 +526,8 @@ def parse_node_centric(batch: dict, overwrite_nan=True):
         all_other_agents_types=neigh_types,
         all_other_agents_extents=neigh_hist_extents.max(dim=-2)[0] * extent_scale,
         all_other_agents_history_extents=neigh_hist_extents * extent_scale,
+        llm_input_ids=batch["llm_input_ids"],
+        llm_attention_mask=batch["llm_attention_mask"],
     )
     if "agent_lanes" in batch:
         d["ego_lanes"] = batch["agent_lanes"]

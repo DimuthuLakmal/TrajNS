@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 
+from tbsim.models.deberta.deberta import DebertaWithSingleOutput
 from tbsim.models.diffuser_helpers import SinusoidalPosEmb
 from tbsim.models.transformer.graph_transformer_encoder import GraphTransformerEncoder
 from tbsim.models.transformer.transformer_encoder import TransformerEncoder
@@ -18,6 +19,8 @@ class SpatioTemporalTransformer(nn.Module):
         #     max_seq_len=encoder_config['max_seq_len']+1,
         #     map=True,
         #     agent_hist=False).to('cuda')
+
+        self.llm_data_encoder = DebertaWithSingleOutput().to('cuda')
 
         self.graph_encoder = GraphTransformerEncoder(
             dim_model=64,
@@ -48,6 +51,8 @@ class SpatioTemporalTransformer(nn.Module):
         # x_cond = torch.cat([aux_info['map_global_feat_hist'], t], dim=1)
 
         graph_enc_out = self.graph_encoder(aux_info)
+
+        llm_enc_out = self.llm_data_encoder(aux_info['llm_input_ids'], aux_info['llm_attention_mask'])
         # image_enc_out = self.image_encoder(aux_info['map_global_feat_hist'])
 
         enc_out = torch.cat([graph_enc_out, aux_info['map_global_feat_hist']], dim=-1)

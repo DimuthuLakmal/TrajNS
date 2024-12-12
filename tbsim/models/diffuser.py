@@ -525,6 +525,8 @@ class DiffuserModel(nn.Module):
             'edge_index': edge_index,
             'map_global_feat_hist': map_global_feat_hist,
             'all_hist_feat': all_hist_feat,
+            'llm_input_ids': data_batch['llm_input_ids'],
+            'llm_attention_mask': data_batch['llm_attention_mask']
         }
         # if include_class_free_cond:
         #     aux_info['non_cond_feat'] = non_cond_feat
