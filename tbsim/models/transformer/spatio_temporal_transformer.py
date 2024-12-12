@@ -1,7 +1,10 @@
 import torch
 from torch import nn
+from transformers import RobertaModel, DebertaModel
 
-from tbsim.models.deberta.deberta import DebertaWithSingleOutput
+from peft import LoraConfig, get_peft_model
+
+# from tbsim.models.deberta.deberta import DebertaWithSingleOutput
 from tbsim.models.diffuser_helpers import SinusoidalPosEmb
 from tbsim.models.transformer.graph_transformer_encoder import GraphTransformerEncoder
 from tbsim.models.transformer.transformer_encoder import TransformerEncoder
@@ -20,7 +23,19 @@ class SpatioTemporalTransformer(nn.Module):
         #     map=True,
         #     agent_hist=False).to('cuda')
 
-        self.llm_data_encoder = DebertaWithSingleOutput().to('cuda')
+        # self.llm_data_encoder = DebertaWithSingleOutput().to('cuda')
+        deberta_model = DebertaModel.from_pretrained("microsoft/deberta-base")
+        # Configure LoRA
+        lora_config = LoraConfig(
+            task_type="FEATURE_EXTRACTION",  # Task type: Sequence Classification
+            inference_mode=False,  # Not in inference mode; for training
+            r=8,  # Rank of LoRA matrices
+            lora_alpha=16,  # Scaling factor for LoRA
+            lora_dropout=0.1,  # Dropout rate
+        )
+        # Wrap the RoBERTa model with LoRA
+        self.llm_data_encoder = get_peft_model(deberta_model, lora_config)
+        self.llm_proj = nn.Linear(deberta_model.config.hidden_size, 64)
 
         self.graph_encoder = GraphTransformerEncoder(
             dim_model=64,
@@ -53,6 +68,7 @@ class SpatioTemporalTransformer(nn.Module):
         graph_enc_out = self.graph_encoder(aux_info)
 
         llm_enc_out = self.llm_data_encoder(aux_info['llm_input_ids'], aux_info['llm_attention_mask'])
+        llm_enc_out = self.llm_proj(llm_enc_out.last_hidden_state[:, 0, :])
         # image_enc_out = self.image_encoder(aux_info['map_global_feat_hist'])
 
         enc_out = torch.cat([graph_enc_out, aux_info['map_global_feat_hist'], llm_enc_out], dim=-1)
