@@ -13,7 +13,11 @@ class BatchLearningRateDecay(Callback):
     def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
         # Calculate the new learning rate
         current_step = trainer.global_step
-        lr = self.initial_lr + (self.final_lr - self.initial_lr) * (current_step / self.total_steps)
+
+        if self.total_steps < current_step:
+            lr = self.final_lr
+        else:
+            lr = self.initial_lr + (self.final_lr - self.initial_lr) * (current_step / self.total_steps)
 
         # Update the learning rate in the optimizer
         for param_group in trainer.optimizers[0].param_groups:

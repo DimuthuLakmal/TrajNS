@@ -219,7 +219,8 @@ def main(cfg, auto_remove_exp_dir=False, debug=False, load_checkpoint=False):
         # setting for overfit debugging
         # limit_val_batches=0,
         # overfit_batches=2,
-        num_sanity_val_steps=0
+        num_sanity_val_steps=0,
+        precision="bf16"
     )
 
     trainer.fit(model=model, datamodule=datamodule)
