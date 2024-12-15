@@ -29,7 +29,7 @@ class NuscTrajdataTrainConfig(TrajdataTrainConfig):
 
         # training config
         # assuming 1 sec (10 steps) past, 2 sec (20 steps) future
-        self.training.batch_size = 4  # 4 # 100
+        self.training.batch_size = 2  # 4 # 100
         self.training.num_steps = 500000
         self.training.num_data_workers = 8
 
