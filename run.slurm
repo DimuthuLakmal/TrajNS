@@ -3,7 +3,7 @@
 # Wed Jul 10 2024 23:21:58 GMT+1000 (Australian Eastern Standard Time)
 
 # Partition for the job:
-#SBATCH --partition=feit-gpu-a100
+#SBATCH --partition=deeplearn
 
 # Multithreaded (SMP) job: must run on one node 
 #SBATCH --nodes=1
@@ -21,10 +21,10 @@
 # Number of GPUs requested per node:
 #SBATCH --gres=gpu:1
 # Slurm QoS:
-#SBATCH --qos=feit
+#SBATCH --qos=gpgpudeeplearn
 
 # The amount of memory in megabytes per node:
-#SBATCH --mem=80000
+#SBATCH --mem=160000
 
 # Use this email address:
 #SBATCH --mail-user=dkariyawasan@student.unimelb.edu.au
@@ -38,7 +38,7 @@
 #SBATCH --mail-type=END
 
 # The maximum running time of the job in days-hours:mins:sec
-#SBATCH --time=3-0:0:00
+#SBATCH --time=5-0:0:00
 
 # check that the script is launched with sbatch
 if [ "x$SLURM_JOB_ID" == "x" ]; then
