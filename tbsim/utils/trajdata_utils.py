@@ -4,6 +4,7 @@ from torchvision.utils import save_image
 
 import tbsim.utils.tensor_utils as TensorUtils
 import tbsim.utils.geometry_utils as GeoUtils
+from tbsim.utils.bert_utils import tokenize_str
 from tbsim.utils.geometry_utils import transform_points_tensor
 from tbsim.configs.base import ExperimentConfig
 from trajdata.data_structures.state import StateTensor,StateArray
@@ -31,6 +32,7 @@ from matplotlib.axes import Axes
 from torch import Tensor
 from trajdata.visualization.vis import draw_map, draw_agent, draw_history
 
+from tbsim.utils.vertex_ai_utils import retrieve_llm_data
 
 full_keywords = ['image', 'target_positions', 'target_yaws', 'target_availabilities', 'history_positions', 'history_yaws', 'history_speeds', 'history_availabilities', 'curr_speed', 'centroid', 'yaw', 'type', 'extent', 'raster_from_agent', 'agent_from_raster', 'agent_from_world', 'world_from_agent', 'all_other_agents_curr_speed', 'all_other_agents_future_availability', 'all_other_agents_types', 'all_other_agents_extents', 'scene_index', 'all_other_agents_history_speeds', 'all_other_agents_history_availabilities', 'all_other_agents_history_availability', 'all_other_agents_history_positions', 'all_other_agents_future_positions', 'all_other_agents_history_yaws', 'all_other_agents_future_yaws', 'image']
 major_keywords = ["history_positions", "history_yaws", "history_speeds", "extent", "history_availabilities", "curr_speed", "target_positions", "target_yaws", "target_availabilities", "all_other_agents_extents", "all_other_agents_history_speeds", "all_other_agents_history_yaws", "all_other_agents_history_positions", "all_other_agents_history_availabilities", "maps", "image"]+["type", "all_other_agents_types", "agent_hist"]
@@ -122,6 +124,7 @@ def rasterize_agents_scene(
 
 
 def rasterize_agents(
+        llm_input_ids: Optional[torch.Tensor],
         maps: torch.Tensor,
         agent_hist_pos: torch.Tensor,
         agent_hist_yaw: torch.Tensor,
@@ -193,6 +196,16 @@ def rasterize_agents(
 
     hist_image = torch.cat((hist_image, maps), dim=1)
 
+    # This is evaluation mode
+    input_ids, attention_mask = None, None
+    if llm_input_ids == None:
+        maps_root_dir = "maps"
+        for i in range(b):
+            save_image(maps[i, 0], f"{maps_root_dir}/maps_{i}.png")
+
+        llm_data = retrieve_llm_data(maps_root_dir, raster_hist_pos)
+        input_ids, attention_mask = tokenize_str(llm_data)
+
     # saving image
     # save_image(maps[0], 'maps.png')
     # save_image(hist_image[0][15], 'maps_hist.png')
@@ -200,7 +213,7 @@ def rasterize_agents(
     raster_hist_pos[..., 0] = raster_hist_pos[..., 0] / (w-1)
     raster_hist_pos[..., 1] = raster_hist_pos[..., 1] / (h-1)
 
-    return maps, hist_image, relative_dist, agent_hist_pos
+    return maps, hist_image, relative_dist, agent_hist_pos, input_ids, attention_mask
 
 
 def get_drivable_region_map(maps):
@@ -461,7 +474,8 @@ def parse_node_centric(batch: dict, overwrite_nan=True):
         # first T channels are rasterized history (single pixel where agent is)
         #       -1 for ego, 1 for others
         # last num_sem_layers are direclty the channels from data loader
-        maps, hist_maps, relative_xy, all_hist_pos = rasterize_agents(
+        maps, hist_maps, relative_xy, all_hist_pos, input_ids, attention_mask = rasterize_agents(
+            batch['llm_input_ids'],
             maps_rasterize_in,
             all_hist_pos,
             all_hist_yaw,
@@ -469,6 +483,10 @@ def parse_node_centric(batch: dict, overwrite_nan=True):
             raster_from_agent,
             map_res
         )
+
+        if input_ids is not None:
+            batch["llm_input_ids"] = input_ids
+            batch["llm_attention_mask"] = attention_mask
     else:
         maps = maps_rasterize_in
 
