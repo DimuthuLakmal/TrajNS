@@ -24,7 +24,7 @@
 #SBATCH --qos=gpgpudeeplearn
 
 # The amount of memory in megabytes per node:
-#SBATCH --mem=160000
+#SBATCH --mem=190000
 
 # Use this email address:
 #SBATCH --mail-user=dkariyawasan@student.unimelb.edu.au

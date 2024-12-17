@@ -155,7 +155,7 @@ def main(cfg, auto_remove_exp_dir=False, debug=False, load_checkpoint=False):
         auto_insert_metric_name=False,
         save_top_k=-1,
         monitor=None,
-        every_n_train_steps=20000,
+        every_n_train_steps=50000,
         verbose=True,
     )
     train_callbacks.append(ckpt_fixed_callback)
@@ -197,7 +197,7 @@ def main(cfg, auto_remove_exp_dir=False, debug=False, load_checkpoint=False):
     train_callbacks.append(lr_decay_callback)
 
     # Train
-    cfg.train.validation.every_n_steps = 20000
+    cfg.train.validation.every_n_steps = 50000
     trainer = pl.Trainer(
         default_root_dir=root_dir,
         # checkpointing
@@ -338,8 +338,8 @@ if __name__ == "__main__":
     if args.debug:
         # Test policy rollout
         default_config.train.validation.every_n_steps = 5
-        default_config.train.save.every_n_steps = 20000
-        default_config.train.rollout.every_n_steps = 20000
+        default_config.train.save.every_n_steps = 50000
+        default_config.train.rollout.every_n_steps = 50000
         default_config.train.rollout.num_episodes = 1
 
     # make rollout evaluation config consistent with the rest of the config
