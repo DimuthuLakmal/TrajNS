@@ -178,7 +178,7 @@ def run_scene_editor(eval_cfg, save_cfg, data_to_disk, render_to_video, render_t
                 if "heuristic" in eval_cfg.edits.editing_source:
                     # reset so that we can get an example batch to initialize guidance more efficiently
                     env.reset(scene_indices=scene_indices, start_frame_index=sim_start_frames)
-                    ex_obs = env.get_observation()
+                    ex_obs = env.get_observation(reset=True)
                     if obs_to_torch:
                         device = policy.device if device is None else device
                         ex_obs = TensorUtils.to_torch(ex_obs, device=device, ignore_if_unspecified=True)

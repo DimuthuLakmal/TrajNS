@@ -23,7 +23,7 @@ def generate(image1, text1, generation_config, safety_settings):
         text_response += response.text
     print(f"Response: {text_response}")
 
-    sleep(25)
+    sleep(2)
     return text_response
 
 # Process each pair of files
@@ -33,8 +33,7 @@ def retrieve_llm_data(maps_root_dir, batch_hist_pos):
     responses = []
 
     for i, hist_pos in enumerate(batch_hist_pos):
-        hist_pos_shape = hist_pos.shape
-        hist_pos = hist_pos.reshape(hist_pos_shape[1], hist_pos_shape[0], hist_pos_shape[2])
+        hist_pos = hist_pos.permute(1, 0, 2)
 
         encoded_image = encode_image(f"{maps_root_dir}/maps_{i}.png")
         hist_pos = process_location_data(hist_pos)
@@ -43,11 +42,11 @@ def retrieve_llm_data(maps_root_dir, batch_hist_pos):
         #     mime_type="text/plain",
         #     data=csv_summary,
         # )
-        text1 = """This map is a 224*224 three color images of a road segment from bird eye view. Yellow lines represent white lane lines in roads. Blue color area represent pavements and red area represents the road and sometimes, parking areas where vehicle can move. The csv data shows the movements of vehicles on this road segment captured on 8 time steps in a fixed frequency. Each row has both x and y coordinates recorded in each time step, in the format of x1,y1,x2,y2,...,x8,y8|. | represents the line break. The first line of the csv data has the column names and second line has the ego vehicle movement whose future movements are going to be predicted based on these historical observations and the road segment. The remaining rows have the movements of other vehicles on the road. In some time steps, both x and y values are 0, and they are noises. Don't consider them in the analysis. When overlaying the coordinates on the map to understand movements, make sure that (0,0) coordinate starts from the top left corner. Considering these information, I want to generate a text describing the movement of the vehicles on the road, context of covering constraints and prominent road features like intersections, bends that it has to be aware of when generating future movements. Text must have less than 1024 tokens. Give the output as few sentences. Don't repeat what I said in the instructions. Be more specific to the given map and given vehicle movements. Don't give more generic information. For example, with regards to the movements, you could say 'Ego vehicles turns right from the intersection into the outer lane.'. With regards to the context, 'There's a T intersection towards the center left of the map'. These examples may not relevant to the given scenario. They're just examples showing the format I need in the output. csv data are: """
+        text1 = """This map is a 224*224 three color images of a road segment from bird eye view. Yellow lines represent white lane lines in roads. Blue color area represent pavements and red area represents the road and sometimes, parking areas where vehicle can move. The csv data shows the movements of vehicles on this road segment captured on 8 time steps in a fixed frequency. Each row has both x and y coordinates recorded in each time step, in the format of x1,y1,x2,y2,...,x8,y8|. | represents the line break. The first line of the csv data has the column names and second line has the ego vehicle movement whose future movements are going to be predicted based on these historical observations and the road segment. The remaining rows have the movements of other vehicles on the road. In some time steps, both x and y values are 0, and they are noises. Don't consider them in the analysis. When overlaying the coordinates on the map to understand movements, make sure that (0,0) coordinate starts from the top left corner. Considering these information, I want to generate a text describing the movement of the vehicles on the road, context of covering constraints and prominent road features like intersections, bends that it has to be aware of when generating future movements. Text must have less than or equal 512 tokens. Give the output as few sentences. Don't repeat what I said in the instructions. Be more specific to the given map and given vehicle movements. Don't give more generic information. For example, with regards to the movements, you could say 'Ego vehicles turns right from the intersection into the outer lane.'. With regards to the context, 'There's a T intersection towards the center left of the map'. These examples may not relevant to the given scenario. They're just examples showing the format I need in the output. csv data are: """
         text1 += hist_pos
 
         generation_config = {
-            "max_output_tokens": 1024,
+            "max_output_tokens": 512,
             "temperature": 0,
             "top_p": 0.95,
         }

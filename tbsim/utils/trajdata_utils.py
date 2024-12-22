@@ -131,6 +131,7 @@ def rasterize_agents(
         agent_mask: torch.Tensor,
         raster_from_agent: torch.Tensor,
         map_res: torch.Tensor,
+        reset
 ) -> torch.Tensor:
     """Paint agent histories onto an agent-centric map image"""
     b, a, t, _ = agent_hist_pos.shape
@@ -170,17 +171,17 @@ def rasterize_agents(
 
     raster_hist_pos_flat = raster_hist_pos[..., 1] * w + raster_hist_pos[..., 0]  # [B, T, A]
 
-    # hist_image = torch.zeros(b, t, h * w, 3, dtype=maps.dtype, device=maps.device)  # [B, T, H * W]
-    # maps_hist = maps.permute(0, 2, 3, 1).unsqueeze(dim=1).repeat(1, t, 1, 1, 1).reshape(b, t, h*w, 3)
-    #
-    # white = torch.tensor([1, 1, 1], device=maps.device)
-    # green = torch.tensor([0, 1, 0], device=maps.device)
-    # maps_hist.scatter_(dim=2, index=raster_hist_pos_flat[:, :, 1:].unsqueeze(dim=-1).repeat(1, 1, 1, 3), src=torch.ones((b, t, h * w, 1), device=maps.device) * white)  # mark other agents with -1
-    # maps_hist.scatter_(dim=2, index=raster_hist_pos_flat[:, :, [0]].unsqueeze(dim=-1).repeat(1, 1, 1, 3), src=torch.ones((b, t, h * w, 1), device=maps.device) * green) # mark ego with 1.
-    # # hist_image[:, :, 0] = 0  # correct the 0th index from invalid positions
-    # # hist_image[:, :, -1] = 0  # correct the maximum index caused by out of bound locations
-    #
-    # hist_image = maps_hist.reshape(b, t, h, w, 3).permute(0, 1, 4, 2, 3)
+    hist_image_ = torch.zeros(b, t, h * w, 3, dtype=maps.dtype, device=maps.device)  # [B, T, H * W]
+    maps_hist_ = maps.permute(0, 2, 3, 1).unsqueeze(dim=1).repeat(1, t, 1, 1, 1).reshape(b, t, h*w, 3)
+    
+    white = torch.tensor([1, 1, 1], device=maps.device)
+    green = torch.tensor([0, 1, 0], device=maps.device)
+    maps_hist_.scatter_(dim=2, index=raster_hist_pos_flat[:, :, 1:].unsqueeze(dim=-1).repeat(1, 1, 1, 3), src=torch.ones((b, t, h * w, 1), device=maps.device) * white)  # mark other agents with -1
+    maps_hist_.scatter_(dim=2, index=raster_hist_pos_flat[:, :, [0]].unsqueeze(dim=-1).repeat(1, 1, 1, 3), src=torch.ones((b, t, h * w, 1), device=maps.device) * green) # mark ego with 1.
+    # hist_image[:, :, 0] = 0  # correct the 0th index from invalid positions
+    # hist_image[:, :, -1] = 0  # correct the maximum index caused by out of bound locations
+    
+    hist_image_ = maps_hist_.reshape(b, t, h, w, 3).permute(0, 1, 4, 2, 3)
     # save_image(hist_image[0][15], 'maps_hist.png')
 
     hist_image = torch.zeros(b, t, h * w, dtype=maps.dtype, device=maps.device)  # [B, T, H * W]
@@ -198,10 +199,10 @@ def rasterize_agents(
 
     # This is evaluation mode
     input_ids, attention_mask = None, None
-    if llm_input_ids == None:
+    if llm_input_ids == None and not reset:
         maps_root_dir = "maps"
         for i in range(b):
-            save_image(maps[i, 0], f"{maps_root_dir}/maps_{i}.png")
+            save_image(maps[i], f"{maps_root_dir}/maps_{i}.png")
 
         llm_data = retrieve_llm_data(maps_root_dir, raster_hist_pos)
         input_ids, attention_mask = tokenize_str(llm_data)
@@ -404,7 +405,7 @@ def parse_scene_centric(batch: dict):
     return d
 
 
-def parse_node_centric(batch: dict, overwrite_nan=True):
+def parse_node_centric(batch: dict, overwrite_nan=True, reset=False):
     maybe_pad_neighbor(batch)
     fut_pos, fut_yaw, _, fut_mask = trajdata2posyawspeed(batch["agent_fut"], nan_to_zero=overwrite_nan)
     hist_pos, hist_yaw, hist_speed, hist_mask = trajdata2posyawspeed(batch["agent_hist"], nan_to_zero=overwrite_nan)
@@ -474,6 +475,8 @@ def parse_node_centric(batch: dict, overwrite_nan=True):
         # first T channels are rasterized history (single pixel where agent is)
         #       -1 for ego, 1 for others
         # last num_sem_layers are direclty the channels from data loader
+        if not reset:
+            print("Not a reset")
         maps, hist_maps, relative_xy, all_hist_pos, input_ids, attention_mask = rasterize_agents(
             batch['llm_input_ids'],
             maps_rasterize_in,
@@ -481,12 +484,13 @@ def parse_node_centric(batch: dict, overwrite_nan=True):
             all_hist_yaw,
             all_hist_mask,
             raster_from_agent,
-            map_res
+            map_res,
+            reset
         )
 
         if input_ids is not None:
-            batch["llm_input_ids"] = input_ids
-            batch["llm_attention_mask"] = attention_mask
+            batch["llm_input_ids"] = torch.stack(input_ids)
+            batch["llm_attention_mask"] = torch.stack(attention_mask)
     else:
         maps = maps_rasterize_in
 
@@ -582,7 +586,7 @@ def compute_valid_map_mask(batch_maps):
     return map_valid_mask
 
 @torch.no_grad()
-def parse_trajdata_batch(batch: dict, overwrite_nan=True):
+def parse_trajdata_batch(batch: dict, overwrite_nan=True, reset=False):
     
     if "num_agents" in batch:
         # scene centric
@@ -590,7 +594,7 @@ def parse_trajdata_batch(batch: dict, overwrite_nan=True):
         
     else:
         # agent centric
-        d = parse_node_centric(batch, overwrite_nan=overwrite_nan)
+        d = parse_node_centric(batch, overwrite_nan=overwrite_nan, reset=reset)
 
     batch = dict(batch)
     batch.update(d)

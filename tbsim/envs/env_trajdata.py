@@ -133,7 +133,7 @@ class EnvUnifiedSimulation(BaseEnv, BatchedEnv):
 
     def _disable_offroad_agents(self, scene):
         obs = scene.get_obs()
-        obs = parse_trajdata_batch(obs)
+        obs = parse_trajdata_batch(obs, reset=True)
         obs_maps = verify_map(obs["maps"])
         drivable_region = get_drivable_region_map(obs_maps)
         raster_pos = transform_points_tensor(obs["centroid"][:, None], obs["raster_from_world"])[:, 0]
@@ -310,7 +310,7 @@ class EnvUnifiedSimulation(BaseEnv, BatchedEnv):
             obs_by_scene.append(TensorUtils.map_ndarray(obs, lambda x: x[obs_scene_index == i]))
         return obs_by_scene
 
-    def get_observation(self):
+    def get_observation(self, reset=False):
         def prepad_history(agent_obs, BM):
             # pad with zeros and set to unavaible
             agent_obs["history_positions"] = np.concatenate([np.zeros((*BM, pad_len, 2), dtype=agent_obs["history_positions"].dtype), agent_obs["history_positions"]], axis=1)
@@ -337,7 +337,7 @@ class EnvUnifiedSimulation(BaseEnv, BatchedEnv):
             raw_obs.extend(scene.get_obs(collate=False))
 
         agent_obs = self.dataset.get_collate_fn(return_dict=True)(raw_obs)
-        agent_obs = parse_trajdata_batch(agent_obs, overwrite_nan=False)
+        agent_obs = parse_trajdata_batch(agent_obs, overwrite_nan=False, reset=reset)
         agent_obs = TensorUtils.to_numpy(agent_obs,ignore_if_unspecified=True)
         agent_obs["scene_index"] = self.current_agent_scene_index
         agent_obs["track_id"] = self.current_agent_track_id

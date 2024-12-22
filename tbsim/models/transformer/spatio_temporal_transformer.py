@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from torch.cuda.amp import autocast
 from transformers import RobertaModel, DebertaModel
+from transformers import AutoModel
 
 from peft import LoraConfig, get_peft_model
 
@@ -25,7 +26,8 @@ class SpatioTemporalTransformer(nn.Module):
         #     agent_hist=False).to('cuda')
 
         # self.llm_data_encoder = DebertaWithSingleOutput().to('cuda')
-        self.deberta_model = DebertaModel.from_pretrained("microsoft/deberta-base")
+        # self.deberta_model = DebertaModel.from_pretrained("microsoft/deberta-base")
+        self.deberta_model = AutoModel.from_pretrained("google/electra-base-discriminator", output_hidden_states=True)
         # Configure LoRA
         lora_config = LoraConfig(
             task_type="FEATURE_EXTRACTION",  # Task type: Sequence Classification
@@ -33,6 +35,7 @@ class SpatioTemporalTransformer(nn.Module):
             r=8,  # Rank of LoRA matrices
             lora_alpha=16,  # Scaling factor for LoRA
             lora_dropout=0.1,  # Dropout rate
+            target_modules=["query", "value"],  # Target modules for LoRA
         )
         # Wrap the RoBERTa model with LoRA
         self.llm_data_encoder = get_peft_model(self.deberta_model, lora_config)
@@ -71,6 +74,7 @@ class SpatioTemporalTransformer(nn.Module):
         # image_enc_out = self.image_encoder(aux_info['map_global_feat_hist'])
 
         enc_out = torch.cat([graph_enc_out, aux_info['map_global_feat_hist'], llm_enc_out], dim=-1)
+        # enc_out = torch.cat([graph_enc_out, aux_info['map_global_feat_hist']], dim=-1)
 
         # dec_out = self.decoder(x_noise, enc_out)
         # enc_out = enc_out.reshape((enc_out.shape[0], enc_out.shape[1] * enc_out.shape[2]))
