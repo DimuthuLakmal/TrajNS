@@ -193,7 +193,7 @@ def main(cfg, auto_remove_exp_dir=False, debug=False, load_checkpoint=False):
         print("WARNING: not logging training stats")
 
     # adding learning rate decay callback
-    lr_decay_callback = BatchLearningRateDecay(initial_lr=cfg.algo.optim_params.policy.learning_rate.initial, final_lr=5e-7, total_steps=400000)
+    lr_decay_callback = BatchLearningRateDecay(initial_lr=cfg.algo.optim_params.policy.learning_rate.initial, final_lr=5e-7, total_steps=200000)
     train_callbacks.append(lr_decay_callback)
 
     # Train
@@ -355,7 +355,7 @@ if __name__ == "__main__":
         default_config.eval.pop("l5kit")
         # default_config.eval.pop("trajdata")
 
-    load_checkpoint = True
+    load_checkpoint = False
     if args.policy_ckpt_dir is not None and load_checkpoint:
         assert args.policy_ckpt_key is not None, "Please specify a key to look for the checkpoint, e.g., 'iter50000'"
         default_config.ckpt.policy.ckpt_dir = args.policy_ckpt_dir
