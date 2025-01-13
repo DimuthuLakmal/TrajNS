@@ -7,7 +7,7 @@ from vertexai.generative_models import GenerativeModel, Part, SafetySetting
 
 
 def generate(image1, text1, generation_config, safety_settings):
-    vertexai.init(project="traffic-llm", location="us-central1")
+    vertexai.init(project="dc-digital-twin", location="us-central1")
     model = GenerativeModel(
         "gemini-1.5-flash-002",
     )
@@ -23,7 +23,7 @@ def generate(image1, text1, generation_config, safety_settings):
         text_response += response.text
     print(f"Response: {text_response}")
 
-    sleep(1)
+    sleep(5)
     return text_response
 
 # Process each pair of files
