@@ -134,6 +134,9 @@ def run_scene_editor(eval_cfg, save_cfg, data_to_disk, render_to_video, render_t
         scene_i += eval_cfg.num_scenes_per_batch
         print('scene_indices', scene_indices)
 
+        if scene_i < 40:
+            continue
+
         # check to make sure all the scenes are valid at starting step
         scenes_valid = env.reset(scene_indices=scene_indices, start_frame_index=None)
         scene_indices = [si for si, sval in zip(scene_indices, scenes_valid) if sval]

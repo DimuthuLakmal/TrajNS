@@ -23,7 +23,7 @@ def generate(image1, text1, generation_config, safety_settings):
         text_response += response.text
     print(f"Response: {text_response}")
 
-    sleep(5)
+    # sleep(1)
     return text_response
 
 # Process each pair of files
