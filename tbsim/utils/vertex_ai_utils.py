@@ -1,5 +1,6 @@
 import os
 from time import sleep
+import random
 
 import base64
 import vertexai
@@ -70,13 +71,19 @@ def retrieve_llm_data(maps_root_dir, batch_hist_pos):
             ),
         ]
 
-        try:
-            text_response = generate(encoded_image, text1, generation_config, safety_settings)
-            responses.append(text_response)
-        except Exception as e:
-            print(f"Error: {e}")
-            text_response = generate(encoded_image, text1, generation_config, safety_settings)
-            responses.append(text_response)
+        base_delay = 1
+        retry_count = 0
+        max_retries = 4
+        while retry_count < max_retries:
+            try:
+                text_response = generate(encoded_image, text1, generation_config, safety_settings)
+                responses.append(text_response)
+                break  # Success, exit retry loop
+            except Exception as e:
+                retry_count += 1
+                wait_time = base_delay * (2 ** retry_count) + random.uniform(0, 0.5)  # Exponential backoff with jitter
+                print(f"Attempt {retry_count} failed: {e}. Retrying in {wait_time:.2f} seconds...")
+                sleep(wait_time)
 
     return responses
 
