@@ -748,7 +748,7 @@ class SceneDiffuserConfig(AlgoConfig):
 
         self.loss_decay_rates = {'collision_decay_rate': 0.9, 'offroad_decay_rate': 0.9}
 
-        self.optim_params.policy.learning_rate.initial = 1e-4  # policy learning rate
+        self.optim_params.policy.learning_rate.initial = 2e-4  # policy learning rate
 
         self.optim_params.policy.learning_rate.decay_factor = (
             0.1  # factor to decay LR by (if epoch schedule non-empty)

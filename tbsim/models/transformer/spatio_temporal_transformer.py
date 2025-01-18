@@ -74,6 +74,7 @@ class SpatioTemporalTransformer(nn.Module):
         # image_enc_out = self.image_encoder(aux_info['map_global_feat_hist'])
 
         enc_out = torch.cat([graph_enc_out, aux_info['map_global_feat_hist'], llm_enc_out], dim=-1)
+        # enc_out = torch.cat([graph_enc_out, aux_info['map_global_feat_hist']], dim=-1)
 
         # dec_out = self.decoder(x_noise, enc_out)
         # enc_out = enc_out.reshape((enc_out.shape[0], enc_out.shape[1] * enc_out.shape[2]))

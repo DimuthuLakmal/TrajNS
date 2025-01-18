@@ -1,5 +1,6 @@
 import os
 from time import sleep
+import random
 
 import base64
 import vertexai
@@ -7,7 +8,7 @@ from vertexai.generative_models import GenerativeModel, Part, SafetySetting
 
 
 def generate(image1, text1, generation_config, safety_settings):
-    vertexai.init(project="traffic-llm", location="us-central1")
+    vertexai.init(project="dc-digital-twin", location="us-central1")
     model = GenerativeModel(
         "gemini-1.5-flash-002",
     )
@@ -23,7 +24,7 @@ def generate(image1, text1, generation_config, safety_settings):
         text_response += response.text
     print(f"Response: {text_response}")
 
-    sleep(25)
+    # sleep(1)
     return text_response
 
 # Process each pair of files
@@ -33,8 +34,7 @@ def retrieve_llm_data(maps_root_dir, batch_hist_pos):
     responses = []
 
     for i, hist_pos in enumerate(batch_hist_pos):
-        hist_pos_shape = hist_pos.shape
-        hist_pos = hist_pos.reshape(hist_pos_shape[1], hist_pos_shape[0], hist_pos_shape[2])
+        hist_pos = hist_pos.permute(1, 0, 2)
 
         encoded_image = encode_image(f"{maps_root_dir}/maps_{i}.png")
         hist_pos = process_location_data(hist_pos)
@@ -47,7 +47,7 @@ def retrieve_llm_data(maps_root_dir, batch_hist_pos):
         text1 += hist_pos
 
         generation_config = {
-            "max_output_tokens": 1024,
+            "max_output_tokens": 512,
             "temperature": 0,
             "top_p": 0.95,
         }
@@ -71,16 +71,19 @@ def retrieve_llm_data(maps_root_dir, batch_hist_pos):
             ),
         ]
 
-        try:
-            text_response = generate(encoded_image, text1, generation_config, safety_settings)
-            responses.append(text_response)
-        except Exception as e:
-            print(f"Error: {e}")
-            text_response = generate(encoded_image, text1, generation_config, safety_settings)
-            responses.append(text_response)
-
-        if i == 1:
-            break
+        base_delay = 1
+        retry_count = 0
+        max_retries = 4
+        while retry_count < max_retries:
+            try:
+                text_response = generate(encoded_image, text1, generation_config, safety_settings)
+                responses.append(text_response)
+                break  # Success, exit retry loop
+            except Exception as e:
+                retry_count += 1
+                wait_time = base_delay * (2 ** retry_count) + random.uniform(0, 0.5)  # Exponential backoff with jitter
+                print(f"Attempt {retry_count} failed: {e}. Retrying in {wait_time:.2f} seconds...")
+                sleep(wait_time)
 
     return responses
 
