@@ -83,7 +83,13 @@ def retrieve_llm_data(maps_root_dir, batch_hist_pos):
                 retry_count += 1
                 wait_time = base_delay * (2 ** retry_count) + random.uniform(0, 0.5)  # Exponential backoff with jitter
                 print(f"Attempt {retry_count} failed: {e}. Retrying in {wait_time:.2f} seconds...")
+
+                if("it has an empty text parameter" in str(e)):
+                    responses.append("It's not a valid input. So the system fails to analyse the input correctly")
+                    break
+
                 sleep(wait_time)
+
 
     return responses
 
