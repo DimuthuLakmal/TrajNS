@@ -383,7 +383,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--estimate_dist",
-        default=False,
+        default=True,
         action="store_true",
         help="Estimate wasserstein distance on stats between the evaluation results and the GT results."
     )

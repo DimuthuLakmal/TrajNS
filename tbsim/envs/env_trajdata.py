@@ -368,6 +368,67 @@ class EnvUnifiedSimulation(BaseEnv, BatchedEnv):
         return self._cached_observation
 
 
+    def get_observation2(self, reset=False):
+        def prepad_history(agent_obs, BM):
+            # pad with zeros and set to unavaible
+            agent_obs["history_positions"] = np.concatenate([np.zeros((*BM, pad_len, 2), dtype=agent_obs["history_positions"].dtype), agent_obs["history_positions"]], axis=1)
+            agent_obs["history_yaws"] = np.concatenate([np.zeros((*BM, pad_len, 1), dtype=agent_obs["history_yaws"].dtype), agent_obs["history_yaws"]], axis=1)
+            agent_obs["history_speeds"] = np.concatenate([np.zeros((*BM, pad_len), dtype=agent_obs["history_speeds"].dtype), agent_obs["history_speeds"]], axis=1)
+            agent_obs["history_availabilities"] = np.concatenate([np.zeros((*BM, pad_len), dtype=agent_obs["history_availabilities"].dtype), agent_obs["history_availabilities"]], axis=1)
+
+            N = agent_obs["all_other_agents_history_positions"].shape[1]
+            agent_obs["all_other_agents_history_positions"] = np.concatenate([np.zeros((*BM, N, pad_len, 2), dtype=agent_obs["all_other_agents_history_positions"].dtype), agent_obs["all_other_agents_history_positions"]], axis=2)
+            agent_obs["all_other_agents_history_yaws"] = np.concatenate([np.zeros((*BM, N, pad_len, 1), dtype=agent_obs["all_other_agents_history_yaws"].dtype), agent_obs["all_other_agents_history_yaws"]], axis=2)
+            agent_obs["all_other_agents_history_speeds"] = np.concatenate([np.zeros((*BM, N, pad_len), dtype=agent_obs["all_other_agents_history_speeds"].dtype), agent_obs["all_other_agents_history_speeds"]], axis=2)
+            agent_obs["all_other_agents_history_availabilities"] = np.concatenate([np.zeros((*BM, N, pad_len), dtype=agent_obs["all_other_agents_history_availabilities"].dtype), agent_obs["all_other_agents_history_availabilities"]], axis=2)
+            agent_obs["all_other_agents_history_availability"] = np.concatenate([np.zeros((*BM, N, pad_len), dtype=agent_obs["all_other_agents_history_availability"].dtype), agent_obs["all_other_agents_history_availability"]], axis=2)
+            agent_obs["all_other_agents_history_extents"] = np.concatenate([np.zeros((*BM, N, pad_len, 3), dtype=agent_obs["all_other_agents_history_extents"].dtype), agent_obs["all_other_agents_history_extents"]], axis=2)
+
+        if self._cached_observation is not None:
+            return self._cached_observation
+
+        self.timers.tic("get_obs")
+
+        raw_obs = []
+        # print('len(self._current_scenes)', len(self._current_scenes))
+        for si, scene in enumerate(self._current_scenes):
+            raw_obs.extend(scene.get_obs(collate=False))
+
+        agent_obs = self.dataset.get_collate_fn(return_dict=True)(raw_obs)
+        if not ((agent_obs['scene_ids'][0] == 'scene-0562') or (agent_obs['scene_ids'][0] == 'scene-0563')):
+            return None
+
+        agent_obs = parse_trajdata_batch(agent_obs, overwrite_nan=False, reset=reset)
+        agent_obs = TensorUtils.to_numpy(agent_obs,ignore_if_unspecified=True)
+        agent_obs["scene_index"] = self.current_agent_scene_index
+        agent_obs["track_id"] = self.current_agent_track_id
+        agent_obs["env_name"] = [self._current_scenes[self.current_scene_index.index(i)].env_name for i in agent_obs["scene_index"]]
+
+        # corner case where no agents in the scene are visible up to full history.
+        #       so need to pad
+        expected_hist_len = floor(self.dataset.history_sec[1] / self.dataset.desired_dt) + 1
+        if "num_agents" in agent_obs:
+            # scene centric
+            # B, M, T, 2
+            pad_len = expected_hist_len - agent_obs["history_positions"].shape[2]
+            B, M = agent_obs["history_positions"].shape[:2]
+            if pad_len > 0:
+                prepad_history(agent_obs, [B, M])
+        else:
+            # agent centric
+            # B, T, 2
+            pad_len = expected_hist_len - agent_obs["history_positions"].shape[1]
+            B = agent_obs["history_positions"].shape[0]
+            if pad_len > 0:
+                prepad_history(agent_obs, [B])
+
+        # cache observations
+        self._cached_observation = dict(agents=agent_obs)
+        self.timers.toc("get_obs")
+
+        return self._cached_observation
+
+
     def get_observation_skimp(self):
         self.timers.tic("obs_skimp")
         raw_obs = []

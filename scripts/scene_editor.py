@@ -275,7 +275,10 @@ def run_scene_editor(eval_cfg, save_cfg, data_to_disk, render_to_video, render_t
             start_frames=sim_start_frames,
             eval_class=eval_cfg.eval_class,
             apply_guidance=eval_cfg.apply_guidance
-        )    
+        )
+
+        if(stats == None):
+            continue
 
         print(info["scene_index"])
         print(sim_start_frames)
