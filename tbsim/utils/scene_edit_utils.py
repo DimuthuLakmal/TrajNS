@@ -95,7 +95,9 @@ def guided_rollout(
     while not done:
         timers.tic("step")
         with timers.timed("obs"):
-            obs = env.get_observation()
+            obs = env.get_observation2()
+            if obs == None:
+                return None, None, None
         with timers.timed("to_torch"):
             if obs_to_torch:
                 device = policy.device if device is None else device
