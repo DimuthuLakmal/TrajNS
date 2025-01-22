@@ -15,19 +15,19 @@ setup(
     name="tbsim",
     packages=[package for package in find_packages() if package.startswith("tbsim")],
     install_requires=[
-        "l5kit==1.5.0",
-        "numpy==1.23.4",  # need to manually update numpy version to (1.21.4) due to conflict with l5kit's requirement
-        "pytorch-lightning==1.8.3.post0",
-        "wandb",
-        "torch==1.11",
-        "torchvision==0.12.0",
-        "pyemd",
-        "h5py",
-        "imageio-ffmpeg",
-        "casadi",
-        "protobuf==3.20.1", # new version might cause error
-        "einops==0.6.0",
-        "torchtext",  # weird pytorch-lightning dependency bug
+        # "l5kit==1.5.0",
+        # "numpy==1.23.4",  # need to manually update numpy version to (1.21.4) due to conflict with l5kit's requirement
+        # "pytorch-lightning==1.8.3.post0",
+        # "wandb",
+        # "torch==1.11",
+        # "torchvision==0.12.0",
+        # "pyemd",
+        # "h5py",
+        # "imageio-ffmpeg",
+        # "casadi",
+        # "protobuf==3.20.1", # new version might cause error
+        # "einops==0.6.0",
+        # "torchtext",  # weird pytorch-lightning dependency bug
     ],
     eager_resources=["*"],
     include_package_data=True,
