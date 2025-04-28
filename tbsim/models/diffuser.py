@@ -29,7 +29,7 @@ from .diffuser_helpers import (
 from .temporal import TemporalMapUnet
 import tbsim.dynamics as dynamics
 from tbsim.utils.guidance_loss import verify_guidance_config_list, verify_constraint_config, apply_constraints, DiffuserGuidance, PerturbationGuidance
-from .transformer.spatio_temporal_transformer_v2 import SpatioTemporalTransformer
+from .transformer.spatio_temporal_transformer import SpatioTemporalTransformer
 
 
 def fprint(*args):
