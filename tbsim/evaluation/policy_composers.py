@@ -772,7 +772,8 @@ class Diffuser(PolicyComposer):
                 algo_config=policy_cfg.algo,
                 modality_shapes={"image": (3, 224, 224)}, # Changed by Dimuthu from self.get_modality_shapes(policy_cfg)
                 registered_name=policy_cfg["registered_name"],
-            ).to(self.device).eval()
+            ).to(self.device)
+            policy.eval()
             policy_cfg = policy_cfg.clone()
 
         if policy_wrapper:

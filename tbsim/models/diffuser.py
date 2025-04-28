@@ -908,7 +908,7 @@ class DiffuserModel(nn.Module):
 
     @torch.no_grad()
     def p_sample(self, x, t, data_batch, aux_info={}, num_samp=1, class_free_guide_w=0.0, apply_guidance=True, guide_clean=False, eval_final_guide_loss=False):
-        apply_guidance = False # Changed by Dimuthu.
+        apply_guidance = True # Changed by Dimuthu.
         b, *_, device = *x.shape, x.device
         with_func = torch.no_grad
         if self.current_perturbation_guidance.current_guidance is not None and apply_guidance and guide_clean == "video_diff":

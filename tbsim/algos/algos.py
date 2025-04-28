@@ -1790,6 +1790,7 @@ class DiffuserTrafficModel(pl.LightningModule):
         self.cur_train_step = 0
 
         self.losses = []
+        self.validation_step_outputs = []
 
     @property
     def checkpoint_monitor_keys(self):
@@ -1855,6 +1856,10 @@ class DiffuserTrafficModel(pl.LightningModule):
 
     def reset_parameters(self):
         self.ema_policy.load_state_dict(self.nets["policy"].state_dict())
+
+    def on_save_checkpoint(self, checkpoint):
+        if self.global_rank != 0:
+            return
 
     def step_ema(self, step):
         if step < self.ema_start_step:
@@ -1992,21 +1997,47 @@ class DiffuserTrafficModel(pl.LightningModule):
         return return_dict
 
 
-    def validation_epoch_end(self, outputs) -> None:
+    # def validation_epoch_end(self, outputs) -> None:
+    #     for k in outputs[0]["losses"]:
+    #         m = torch.stack([o["losses"][k] for o in outputs]).mean()
+    #         self.log("val/losses_" + k, m)
+    #     for k in outputs[0]["metrics"]:
+    #         m = np.stack([o["metrics"][k] for o in outputs]).mean()
+    #         self.log("val/metrics_" + k, m)
+        
+    #     if self.use_ema:
+    #         for k in outputs[0]["ema_losses"]:
+    #             m = torch.stack([o["ema_losses"][k] for o in outputs]).mean()
+    #             self.log("val/ema_losses_" + k, m)
+    #         for k in outputs[0]["ema_metrics"]:
+    #             m = np.stack([o["ema_metrics"][k] for o in outputs]).mean()
+    #             self.log("val/ema_metrics_" + k, m)
+
+    def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
+        self.validation_step_outputs.append(outputs)
+
+    def on_validation_epoch_end(self):
+        outputs = self.validation_step_outputs
+
         for k in outputs[0]["losses"]:
             m = torch.stack([o["losses"][k] for o in outputs]).mean()
-            self.log("val/losses_" + k, m)
+            self.log("val/losses_" + k, m, sync_dist=True)
+
         for k in outputs[0]["metrics"]:
             m = np.stack([o["metrics"][k] for o in outputs]).mean()
-            self.log("val/metrics_" + k, m)
-        
+            self.log("val/metrics_" + k, m, sync_dist=True)
+
         if self.use_ema:
             for k in outputs[0]["ema_losses"]:
                 m = torch.stack([o["ema_losses"][k] for o in outputs]).mean()
-                self.log("val/ema_losses_" + k, m)
+                self.log("val/ema_losses_" + k, m, sync_dist=True)
+
             for k in outputs[0]["ema_metrics"]:
                 m = np.stack([o["ema_metrics"][k] for o in outputs]).mean()
-                self.log("val/ema_metrics_" + k, m)
+                self.log("val/ema_metrics_" + k, m, sync_dist=True)
+
+        # Clear the stored outputs for next epoch
+        self.validation_step_outputs.clear()
 
     def configure_optimizers(self):
         optim_params = self.algo_config.optim_params["policy"]

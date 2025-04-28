@@ -122,6 +122,7 @@ class EvaluationConfig(Dict):
         self.l5kit.skip_first_n = 1
         self.l5kit.skimp_rollout = False
 
+        self.adjustment.enabled = False
         self.adjustment.random_init_plan=False
         self.adjustment.remove_existing_neighbors = False
         self.adjustment.initial_num_neighbors = 4

@@ -58,16 +58,21 @@ def main(cfg, auto_remove_exp_dir=False, debug=False, load_checkpoint=False):
     train_callbacks = []
 
     # Training Parallelism
+    # cfg.train.parallel_strategy = "ddp"
+    # cfg.devices.num_gpus = 2
+    cfg.train.parallel_strategy = "auto"
+    cfg.devices.num_gpus = 1
     assert cfg.train.parallel_strategy in [
-        "dp",
+        "ddp",
         "ddp_spawn",
         None,
+        "auto"
     ]  # TODO: look into other strategies
     if not cfg.devices.num_gpus > 1:
         # Override strategy when training on a single GPU
         with cfg.train.unlocked():
-            cfg.train.parallel_strategy = None
-    if cfg.train.parallel_strategy in ["ddp_spawn"]:
+            cfg.train.parallel_strategy = "auto"
+    if cfg.train.parallel_strategy in ["ddp_spawn" ,"ddp"]:
         with cfg.train.training.unlocked():
             cfg.train.training.batch_size = int(
                 cfg.train.training.batch_size / cfg.devices.num_gpus
@@ -76,6 +81,9 @@ def main(cfg, auto_remove_exp_dir=False, debug=False, load_checkpoint=False):
             cfg.train.validation.batch_size = int(
                 cfg.train.validation.batch_size / cfg.devices.num_gpus
             )
+
+    if cfg.train.parallel_strategy == "ddp":
+        cfg.train.parallel_strategy = "ddp_find_unused_parameters_true"
 
     # Dataset
     datamodule = datamodule_factory(
@@ -155,7 +163,7 @@ def main(cfg, auto_remove_exp_dir=False, debug=False, load_checkpoint=False):
         auto_insert_metric_name=False,
         save_top_k=-1,
         monitor=None,
-        every_n_train_steps=50000,
+        every_n_train_steps=200,
         verbose=True,
     )
     train_callbacks.append(ckpt_fixed_callback)
@@ -193,12 +201,14 @@ def main(cfg, auto_remove_exp_dir=False, debug=False, load_checkpoint=False):
         print("WARNING: not logging training stats")
 
     # adding learning rate decay callback
-    lr_decay_callback = BatchLearningRateDecay(initial_lr=cfg.algo.optim_params.policy.learning_rate.initial, final_lr=5e-7, total_steps=200000)
+    lr_decay_callback = BatchLearningRateDecay(initial_lr=cfg.algo.optim_params.policy.learning_rate.initial, final_lr=5e-7, total_steps=400000)
     train_callbacks.append(lr_decay_callback)
 
     # Train
     cfg.train.validation.every_n_steps = 50000
     trainer = pl.Trainer(
+        devices=cfg.devices.num_gpus,
+        accelerator="gpu",
         default_root_dir=root_dir,
         # checkpointing
         enable_checkpointing=cfg.train.save.enabled,
@@ -214,7 +224,7 @@ def main(cfg, auto_remove_exp_dir=False, debug=False, load_checkpoint=False):
         # all callbacks
         callbacks=train_callbacks,
         # device & distributed training setup
-        gpus=cfg.devices.num_gpus,
+        # gpus=cfg.devices.num_gpus,
         strategy=cfg.train.parallel_strategy,
         # setting for overfit debugging
         # limit_val_batches=0,

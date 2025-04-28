@@ -300,27 +300,27 @@ class SceneEditingConfig(EvaluationConfig):
             #  'agents' : None,
             # },
             # 3,6.agent collision
-            {
-             'name' : 'agent_collision',
-             'weight' : 50.0,
-             'params' : {
-                            'num_disks' : 2,
-                            'buffer_dist': 0.2,
-                            'decay_rate': 0.9,
-                            'excluded_agents': None,
-                        },
-             'agents' : None,
-            },            
-            # 4,5,6.map collision
             # {
-            #  'name' : 'map_collision',
-            #  'weight' : 1.0,
+            #  'name' : 'agent_collision',
+            #  'weight' : 50.0,
             #  'params' : {
-            #                 'num_points_lw' : (10, 10),
+            #                 'num_disks' : 2,
+            #                 'buffer_dist': 0.2,
             #                 'decay_rate': 0.9,
+            #                 'excluded_agents': None,
             #             },
             #  'agents' : None,
-            # },   
+            # },            
+            # 4,5,6.map collision
+            {
+             'name' : 'map_collision',
+             'weight' : 1.0,
+             'params' : {
+                            'num_points_lw' : (10, 10),
+                            'decay_rate': 0.9,
+                        },
+             'agents' : None,
+            },   
             # gptcollision
             # {
             #  'name' : 'gptcollision',

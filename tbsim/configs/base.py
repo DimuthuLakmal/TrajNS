@@ -95,7 +95,7 @@ class ExperimentConfig(Dict):
         self.root_dir = "{}_trained_models/".format(self.algo.name)
         self.seed = 1  # seed for everything (for reproducibility)
 
-        self.devices.num_gpus = 1  # Set to 0 to use CPU
+        self.devices.num_gpus = 2  # Set to 0 to use CPU
 
     def clone(self):
         return self.__class__(

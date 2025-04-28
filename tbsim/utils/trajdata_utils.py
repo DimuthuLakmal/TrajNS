@@ -32,7 +32,8 @@ from matplotlib.axes import Axes
 from torch import Tensor
 from trajdata.visualization.vis import draw_map, draw_agent, draw_history
 
-from tbsim.utils.vertex_ai_utils import retrieve_llm_data
+# from tbsim.utils.vertex_ai_utils import retrieve_llm_data
+from tbsim.utils.qwen_utils import retrieve_llm_data
 
 full_keywords = ['image', 'target_positions', 'target_yaws', 'target_availabilities', 'history_positions', 'history_yaws', 'history_speeds', 'history_availabilities', 'curr_speed', 'centroid', 'yaw', 'type', 'extent', 'raster_from_agent', 'agent_from_raster', 'agent_from_world', 'world_from_agent', 'all_other_agents_curr_speed', 'all_other_agents_future_availability', 'all_other_agents_types', 'all_other_agents_extents', 'scene_index', 'all_other_agents_history_speeds', 'all_other_agents_history_availabilities', 'all_other_agents_history_availability', 'all_other_agents_history_positions', 'all_other_agents_future_positions', 'all_other_agents_history_yaws', 'all_other_agents_future_yaws', 'image']
 major_keywords = ["history_positions", "history_yaws", "history_speeds", "extent", "history_availabilities", "curr_speed", "target_positions", "target_yaws", "target_availabilities", "all_other_agents_extents", "all_other_agents_history_speeds", "all_other_agents_history_yaws", "all_other_agents_history_positions", "all_other_agents_history_availabilities", "maps", "image"]+["type", "all_other_agents_types", "agent_hist"]
@@ -202,7 +203,7 @@ def rasterize_agents(
     if llm_input_ids == None and not reset:
         maps_root_dir = "maps"
         for i in range(b):
-            save_image(maps[i], f"{maps_root_dir}/maps_{i}.png")
+            save_image(maps[i], f"{maps_root_dir}/maps_map_guide_{i}.png")
 
         llm_data = retrieve_llm_data(maps_root_dir, raster_hist_pos)
         input_ids, attention_mask = tokenize_str(llm_data)
