@@ -29,7 +29,7 @@ from .diffuser_helpers import (
 from .temporal import TemporalMapUnet
 import tbsim.dynamics as dynamics
 from tbsim.utils.guidance_loss import verify_guidance_config_list, verify_constraint_config, apply_constraints, DiffuserGuidance, PerturbationGuidance
-from .transformer.spatio_temporal_transformer import SpatioTemporalTransformer
+from .transformer.spatio_temporal_transformer_v2 import SpatioTemporalTransformer
 
 
 def fprint(*args):
@@ -908,7 +908,7 @@ class DiffuserModel(nn.Module):
 
     @torch.no_grad()
     def p_sample(self, x, t, data_batch, aux_info={}, num_samp=1, class_free_guide_w=0.0, apply_guidance=True, guide_clean=False, eval_final_guide_loss=False):
-        apply_guidance = True # Changed by Dimuthu.
+        apply_guidance = False # Changed by Dimuthu.
         b, *_, device = *x.shape, x.device
         with_func = torch.no_grad
         if self.current_perturbation_guidance.current_guidance is not None and apply_guidance and guide_clean == "video_diff":

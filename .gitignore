@@ -106,3 +106,8 @@ lan2stl.md
 add_text.py
 gpt_query.md
 changes.md
+scripts/diffuser_trained_models
+scripts/bc_trained_models
+scripts/vae_trained_models
+scripts/nusc_results
+scripts/model_evaluation_results

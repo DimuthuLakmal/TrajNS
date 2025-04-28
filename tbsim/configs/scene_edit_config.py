@@ -310,7 +310,7 @@ class SceneEditingConfig(EvaluationConfig):
             #                 'excluded_agents': None,
             #             },
             #  'agents' : None,
-            # },            
+            # },     
             # 4,5,6.map collision
             {
              'name' : 'map_collision',
