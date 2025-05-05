@@ -280,9 +280,6 @@ def run_scene_editor(eval_cfg, save_cfg, data_to_disk, render_to_video, render_t
         if(stats == None):
             continue
 
-        if stats == None:
-            continue
-
         print(info["scene_index"])
         print(sim_start_frames)
         pprint(stats)
