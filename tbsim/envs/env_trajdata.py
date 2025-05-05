@@ -395,6 +395,9 @@ class EnvUnifiedSimulation(BaseEnv, BatchedEnv):
 
         agent_obs = self.dataset.get_collate_fn(return_dict=True)(raw_obs)
         if not ((agent_obs['scene_ids'][0] == 'scene-0562') or (agent_obs['scene_ids'][0] == 'scene-0563')
+        or (agent_obs['scene_ids'][0] == 'scene-0093') or (agent_obs['scene_ids'][0] == 'scene-0094')
+        or (agent_obs['scene_ids'][0] == 'scene-0095') or (agent_obs['scene_ids'][0] == 'scene-0096')
+        or (agent_obs['scene_ids'][0] == 'scene-0097')
          or (agent_obs['scene_ids'][0] == 'scene-0098') or (agent_obs['scene_ids'][0] == 'scene-0099')
           or (agent_obs['scene_ids'][0] == 'scene-0100') or (agent_obs['scene_ids'][0] == 'scene-0101')
            or (agent_obs['scene_ids'][0] == 'scene-0102') or (agent_obs['scene_ids'][0] == 'scene-0103')
