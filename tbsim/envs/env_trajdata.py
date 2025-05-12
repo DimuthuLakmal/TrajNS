@@ -394,8 +394,8 @@ class EnvUnifiedSimulation(BaseEnv, BatchedEnv):
             raw_obs.extend(scene.get_obs(collate=False))
 
         agent_obs = self.dataset.get_collate_fn(return_dict=True)(raw_obs)
-        if not ((agent_obs['scene_ids'][0] == 'scene-0562') or (agent_obs['scene_ids'][0] == 'scene-0563')
-              or (agent_obs['scene_ids'][0] == 'scene-0108') or (agent_obs['scene_ids'][0] == 'scene-0109')):
+        if not ((agent_obs['scene_ids'][0] == 'scene-103') or (agent_obs['scene_ids'][0] == 'scene-0102') or
+        (agent_obs['scene_ids'][0] == 'scene-0101')):
             return None
         agent_obs = parse_trajdata_batch(agent_obs, overwrite_nan=False, reset=reset)
         agent_obs = TensorUtils.to_numpy(agent_obs,ignore_if_unspecified=True)
