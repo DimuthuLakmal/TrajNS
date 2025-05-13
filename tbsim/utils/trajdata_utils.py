@@ -203,7 +203,7 @@ def rasterize_agents(
     if llm_input_ids == None and not reset:
         maps_root_dir = "maps"
         for i in range(b):
-            save_image(maps[i], f"{maps_root_dir}/maps_map_guide_{i}.png")
+            save_image(maps[i], f"{maps_root_dir}/maps_map1_guide_{i}.png")
 
         llm_data = retrieve_llm_data(maps_root_dir, raster_hist_pos)
         input_ids, attention_mask = tokenize_str(llm_data)

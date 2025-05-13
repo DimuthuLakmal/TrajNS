@@ -65,7 +65,7 @@ class SceneEditingConfig(EvaluationConfig):
         # latent perturbation for cvae (trafficsim),
         # action perturbation for bc and bits,
         # action perturbation (every denoising step) for diffuser
-        self.apply_guidance = True # this controls at the scene rollout level while guide_as_filter_only controls at the diffuser algorithm level 
+        self.apply_guidance = False # this controls at the scene rollout level while guide_as_filter_only controls at the diffuser algorithm level 
         # constraints for diffuser
         self.apply_constraints = False
 
@@ -300,27 +300,27 @@ class SceneEditingConfig(EvaluationConfig):
             #  'agents' : None,
             # },
             # 3,6.agent collision
-            {
-             'name' : 'agent_collision',
-             'weight' : 50.0,
-             'params' : {
-                            'num_disks' : 2,
-                            'buffer_dist': 0.2,
-                            'decay_rate': 0.9,
-                            'excluded_agents': None,
-                        },
-             'agents' : None,
-            },     
+            # {
+            #  'name' : 'agent_collision',
+            #  'weight' : 50.0,
+            #  'params' : {
+            #                 'num_disks' : 2,
+            #                 'buffer_dist': 0.2,
+            #                 'decay_rate': 0.9,
+            #                 'excluded_agents': None,
+            #             },
+            #  'agents' : None,
+            # },     
             # 4,5,6.map collision
-            {
-             'name' : 'map_collision',
-             'weight' : 1.0,
-             'params' : {
-                            'num_points_lw' : (10, 10),
-                            'decay_rate': 0.9,
-                        },
-             'agents' : None,
-            },   
+            # {
+            #  'name' : 'map_collision',
+            #  'weight' : 1.0,
+            #  'params' : {
+            #                 'num_points_lw' : (10, 10),
+            #                 'decay_rate': 0.9,
+            #             },
+            #  'agents' : None,
+            # },   
             # gptcollision
             # {
             #  'name' : 'gptcollision',
