@@ -54,7 +54,7 @@ module load Anaconda3/2022.10
 # The job command(s):
 module load CUDA/11.8.0; eval "$(conda shell.bash hook)"; conda activate bg3.9
 # python scripts/train.py --dataset_path /data/gpfs/projects/punim2030/nuscenes --config_name trajdata_nusc_diff --policy_ckpt_dir diffuser_trained_models/test/run27 --policy_ckpt_key iter450000.ckpt --debug
-python scripts/scene_editor.py --results_root_dir nusc_results_dmmdiff_local_llm_no_guide_v2/ --num_scenes_per_batch 1 --dataset_path /data/gpfs/projects/punim2030/nuscenes --env trajdata --policy_ckpt_dir diffuser_trained_models/test/run48 --policy_ckpt_key iter300000.ckpt --eval_class Diffuser --editing_source config heuristic --registered_name 'trajdata_nusc_scene_diff' --render
+python scripts/scene_editor.py --results_root_dir nusc_results_dmmdiff_local_llm_map_guided_v2/ --num_scenes_per_batch 1 --dataset_path /data/gpfs/projects/punim2030/nuscenes --env trajdata --policy_ckpt_dir diffuser_trained_models/test/run48 --policy_ckpt_key iter300000.ckpt --eval_class Diffuser --editing_source config heuristic --registered_name 'trajdata_nusc_scene_diff' --render
 # python scripts/scene_editor.py --results_root_dir nusc_results_4/ --num_scenes_per_batch 1 --dataset_path /data/gpfs/projects/punim2030/nuscenes --env trajdata --policy_ckpt_dir diffuser_trained_models/test/run35 --policy_ckpt_key iter350000.ckpt --eval_class Diffuser --editing_source config heuristic --registered_name 'trajdata_nusc_scene_diff' --render
 
 ##DO NOT ADD/EDIT BEYOND THIS LINE##
