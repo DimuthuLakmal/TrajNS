@@ -117,7 +117,7 @@ def retrieve_llm_data(maps_root_dir, batch_hist_pos):
     for i, hist_pos in enumerate(batch_hist_pos):
         hist_pos = hist_pos.permute(1, 0, 2)
 
-        image_file = f"{maps_root_dir}/maps_map5_guide_{i}.png"
+        image_file = f"{maps_root_dir}/maps_map6_guide_{i}.png"
         hist_pos = process_location_data(hist_pos)
 
         request = format_data(image_file, hist_pos)
