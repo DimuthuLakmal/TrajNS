@@ -122,7 +122,7 @@ python scripts/parse_scene_edit_results.py --results_dir
 ```
 
 ## Pre-trained models
-We will releasing the pretrained model soon
+We are going to release the pretrained model weights soon. Stay tuned
 
 ## Configurations
 check out `class DiffuserConfig` and `class SceneDiffuserConfig` in `algo_config.py` for algorithm configs, `trajdata_nusc_config.py` for dataset configs, and `scene_edit_config.py` for rollout configs (including changing the guidance used during denoising).
