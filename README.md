@@ -84,11 +84,6 @@ A concrete example (CTG):
 python scripts/train.py --dataset_path ../behavior-generation-dataset/nuscenes --config_name trajdata_nusc_diff --debug
 ```
 
-A concrete example (CTG++):
-```
-python scripts/train.py --dataset_path ../behavior-generation-dataset/nuscenes --config_name trajdata_nusc_scene_diff --debug
-```
-
 ### 3. Run rollout of a trained model (closed-loop simulation)
 Run Rollout
 ```
@@ -117,21 +112,6 @@ python scripts/scene_editor.py \
   --eval_class Diffuser \
   --editing_source 'config' 'heuristic' \
   --registered_name 'trajdata_nusc_diff' \
-  --render
-```
-
-The following is a concrete example for running CTG++ (when using the pre-trained model):
-```
-python scripts/scene_editor.py \
-  --results_root_dir nusc_results/ \
-  --num_scenes_per_batch 1 \
-  --dataset_path ../behavior-generation-dataset/nuscenes \
-  --env trajdata \
-  --policy_ckpt_dir ../../summer_project/behavior-generation/trained_models_only_new/trajdata_nusc/ctg++8_9,10edge \
-  --policy_ckpt_key iter50000.ckpt \
-  --eval_class SceneDiffuser \
-  --editing_source 'config' 'heuristic' \
-  --registered_name 'trajdata_nusc_scene_diff' \
   --render
 ```
 
