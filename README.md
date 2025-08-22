@@ -1,5 +1,8 @@
-# Controllable Traffic Generation (CTG)
-Codebase of Controllable Traffic Generation (CTG) and Controllable Traffic Generation Plus Plus (CTG++). 
+# Dual Perspective Framework for Vehicle Trajectory Generation (TrajNS)
+
+TrajNS: Numerical and Semantic Modeling Framework for Realistic and Controllable Trajectory Generation 
+
+This codebase is an extension for https://github.com/NVlabs/CTG
 
 This repo is mostly built on top of [traffic-behavior-simulation (tbsim)](https://github.com/NVlabs/traffic-behavior-simulation). The diffusion model part is built on top of initial implementation in [Diffuser](https://github.com/jannerm/diffuser). It also lightly uses [STLCG](https://github.com/StanfordASL/stlcg).
 
@@ -54,14 +57,6 @@ pip install graphviz
 pip install -e .
 git checkout dev
 ```
-
-
-### Extra Setup for ChatGPT API (if using lanugage interface of CTG++)
-```
-pip install openai
-pip install tiktoken
-```
-Create a file `openai_key.py` and put your openai key in it with the variable name `openai_key`.
 
 ## Quick start
 ### 1. Obtain dataset(s)
@@ -152,31 +147,3 @@ Note that the provided CTG model slightly differ from that in the original CTG p
 
 ## Configurations
 check out `class DiffuserConfig` and `class SceneDiffuserConfig` in `algo_config.py` for algorithm configs, `trajdata_nusc_config.py` for dataset configs, and `scene_edit_config.py` for rollout configs (including changing the guidance used during denoising).
-
-
-## References
-If you find this repo useful, please consider to cite our relevant work: 
-
-```
-@INPROCEEDINGS{10161463,
-  author={Zhong, Ziyuan and Rempe, Davis and Xu, Danfei and Chen, Yuxiao and Veer, Sushant and Che, Tong and Ray, Baishakhi and Pavone, Marco},
-  booktitle={2023 IEEE International Conference on Robotics and Automation (ICRA)}, 
-  title={Guided Conditional Diffusion for Controllable Traffic Simulation}, 
-  year={2023},
-  volume={},
-  number={},
-  pages={3560-3566},
-  doi={10.1109/ICRA48891.2023.10161463}}
-
-```
-
-```
-@inproceedings{
-zhong2023languageguided,
-title={Language-Guided Traffic Simulation via Scene-Level Diffusion},
-author={Ziyuan Zhong and Davis Rempe and Yuxiao Chen and Boris Ivanovic and Yulong Cao and Danfei Xu and Marco Pavone and Baishakhi Ray},
-booktitle={7th Annual Conference on Robot Learning},
-year={2023},
-url={https://openreview.net/forum?id=nKWQnYkkwX}
-}
-```
